@@ -2,6 +2,7 @@
 // github.com/Damlrca/coursework_spmv
 
 #include "storage_formats.hpp"
+#include <algorithm>
 
 extern "C" {
 #include <string.h>
@@ -79,4 +80,38 @@ static matrix_CSR create_transposed_CSR(matrix_CSR& mtx_CSR) {
 
 void transpose_CSR(matrix_CSR& mtx_CSR) {
 	mtx_CSR = std::move(create_transposed_CSR(mtx_CSR));
+}
+
+// In future: to do: template<int C, int sigma>
+// For now: C == vsetvlmax_e64m4() == 8, sigma = 1
+matrix_SELL_C_sigma convert_CSR_to_SELL_C_sigma(const matrix_CSR& mtx_CSR) {
+	matrix_SELL_C_sigma res;
+	res.N = (mtx_CSR.N + 8 - 1) / 8 * 8;
+	res.M = mtx_CSR.M;
+	res.cs = new int[res.N / 8 + 1];
+	res.cl = new int[res.N / 8];
+	memset(res.cs, 0, (res.N / 8 + 1) * sizeof(int));
+	memset(res.cl, 0, (res.N / 8) * sizeof(int));
+	for (int i = 0; i < mtx_CSR.N; i++) {
+		int i_sz = mtx_CSR.row_id[i + 1] - mtx_CSR.row_id[i];
+		res.cl[i / 8] = std::max(res.cl[i / 8], i_sz);
+	}
+	int S = 0;
+	for (int i = 0; i < res.N / 8; i++) {
+		res.cs[i] = S;
+		S += res.cl[i] * 8;
+	}
+	res.cs[res.N / 8] = S;
+	res.value = new double[S];
+	res.col = new int[S];
+	memset(res.value, 0, S * sizeof(double));
+	memset(res.col, 0, S * sizeof(int));
+	for (int i = 0; i < mtx_CSR.N; i++) {
+		for (int j = mtx_CSR.row_id[i]; j < mtx_CSR.row_id[i + 1]; j++) {
+			int indx = res.cs[i / 8] + (i - i / 8 * 8) + (j - mtx_CSR.row_id[i]) * 8;
+			res.value[indx] = mtx_CSR.value[j];
+			res.col[indx] = mtx_CSR.col[j];
+		}
+	}
+	return res;
 }

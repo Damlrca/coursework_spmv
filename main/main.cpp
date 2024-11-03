@@ -157,9 +157,27 @@ int main(int argc, char** argv) {
 	cout << "(" << spmv_albus_omp_v_result << "ms for all iterations)" << endl;
 	cout << "-------------------------" << endl;
 	
+	
+	cout << "mtx_SELL_C_sigma" << endl;
+	matrix_SELL_C_sigma mtx_SELL_C_sigma = convert_CSR_to_SELL_C_sigma(mtx_CSR);
+	
+	for (int it = 0; it < 5; it++) {
+		vector_format res = spmv_sell_c_sigma(mtx_SELL_C_sigma, v, threads_num);
+	}
+	MyTimer::SetStartTime();
+	for (int it = 0; it < ite; it++) {
+		vector_format res = spmv_sell_c_sigma(mtx_SELL_C_sigma, v, threads_num);
+	}
+	MyTimer::SetEndTime();
+	int spmv_sell_c_sigma_result = MyTimer::GetDifferenceMs();
+	cout << "spmv_sell_c_sigma: " << spmv_sell_c_sigma_result / ite << "ms per iteration" << endl;
+	cout << "(" << spmv_sell_c_sigma_result << "ms for all iterations)" << endl;
+	cout << "-------------------------" << endl;
+	
 	vector_format res_naive = spmv_naive(mtx_CSR, v, threads_num);
 	vector_format res_albus = spmv_albus_omp(mtx_CSR, v, start, block_start, threads_num);
 	vector_format res_albus_v = spmv_albus_omp_v(mtx_CSR, v, start, block_start, threads_num);
+	vector_format res_scs = spmv_sell_c_sigma(mtx_SELL_C_sigma, v, threads_num);
 	
 	double mx_diff = 0;
 	for (int i = 0; i < res_naive.N; i++) {
@@ -172,6 +190,12 @@ int main(int argc, char** argv) {
 		mx_diff_2 = max(mx_diff_2, abs(res_naive.value[i] - res_albus_v.value[i]));
 	}
 	cout << "mx_diff_2: " << mx_diff_2 << endl;
+	
+	double mx_diff_3 = 0;
+	for (int i = 0; i < res_naive.N; i++) {
+		mx_diff_3 = max(mx_diff_3, abs(res_naive.value[i] - res_scs.value[i]));
+	}
+	cout << "mx_diff_3: " << mx_diff_3 << endl;
 	
 	int cnt = 0;
 	for (int i = 0; i < res_naive.N; i++) {
@@ -195,12 +219,64 @@ int main(int argc, char** argv) {
 		}
  	}
 	cout << "cnt: " << cnt << endl;
+	
 	cout << "-------------------------" << endl;
 	cout << "!!!!!!!!!!!!!!!!!!!!!!!!!" << endl;
-	cout << "          matrix: " << filename << endl;
-	cout << "      spmv_naive: " << spmv_naive_result / ite << "ms per iteration" << endl;
-	cout << "  spmv_albus_omp: " << spmv_albus_omp_result / ite << "ms per iteration" << endl;
-	cout << "spmv_albus_omp_v: " << spmv_albus_omp_v_result / ite << "ms per iteration" << endl;
+	cout << "                  matrix: " << filename << endl;
+	cout << "              spmv_naive: " << spmv_naive_result / ite << "ms per iteration" << endl;
+	cout << "          spmv_albus_omp: " << spmv_albus_omp_result / ite << "ms per iteration" << endl;
+	cout << "        spmv_albus_omp_v: " << spmv_albus_omp_v_result / ite << "ms per iteration" << endl;
+	cout << "spmv_sell_c_sigma_result: " << spmv_sell_c_sigma_result / ite << "ms per iteration" << endl;
 	cout << "!!!!!!!!!!!!!!!!!!!!!!!!!" << endl;
+	
+	/*
+	cout << "-------------------------" << endl;
+	cout << "test sell-c-sigma" << endl;
+	
+	matrix_SELL_C_sigma mtx_SELL_C_sigma = convert_CSR_to_SELL_C_sigma(mtx_CSR);
+	
+	cout << "csr" << endl;
+	for (int i = 0; i < 8; i++) {
+		cout << "i=" << i << " ";
+		for (int j = mtx_CSR.row_id[i]; j < mtx_CSR.row_id[i + 1]; j++) {
+			cout << "(" << mtx_CSR.col[j] << ", " << mtx_CSR.value[j] << ")" << " ";
+		}
+		cout << endl;
+	}
+	cout << "..." << endl;
+	
+	cout << "sell-c-sigma" << endl;
+	for (int j = mtx_SELL_C_sigma.cs[0]; j < mtx_SELL_C_sigma.cs[1]; j += 8) {
+		for (int i = 0; i < 8; i++) {
+			cout << "(" << mtx_SELL_C_sigma.col[j + i] << ", " << mtx_SELL_C_sigma.value[j + i] << ") ";
+		}
+		cout << endl;
+	}
+	
+	cout << "cl cs" << endl;
+	for (int i = 0; i < 10; i++) {
+		cout << mtx_SELL_C_sigma.cl[i] << " " << mtx_SELL_C_sigma.cs[i] << endl;
+	}
+	cout << "... ..." << endl;
+ 	
+	cout << "convert_CSR_to_SELL_C_sigma successfully?" << endl;
+	
+	vector_format res_scs = spmv_sell_c_sigma(mtx_SELL_C_sigma, v, threads_num);
+	
+	cout << "spmv_sell_c_sigma successfully?" << endl;
+	
+	double mx_diff_3 = 0;
+	for (int i = 0; i < res_naive.N; i++) {
+		mx_diff_3 = max(mx_diff_3, abs(res_naive.value[i] - res_scs.value[i]));
+	}
+	cout << "mx_diff_3: " << mx_diff_3 << endl;
+	
+	cout << "res_naive res_scs" << endl;
+	for (int i = 0; i < 100; i++) {
+		cout << res_naive.value[i] << " " << res_scs.value[i] << endl;
+	}
+	cout << "... ..." << endl;
+	
+	*/
  	return 0;
 }
