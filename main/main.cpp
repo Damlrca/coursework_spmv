@@ -6,6 +6,7 @@
 #include <set>
 #include <random>
 #include <omp.h>
+#include <cstdlib>
 
 #include "../storage_formats/storage_formats.hpp"
 #include "../mtx_input/mtx_input.hpp"
@@ -61,6 +62,36 @@ int main(int argc, char** argv) {
 		cout << "error : no name of file with matrix!" << endl;
 		return -1;
 	}
+	
+	int threads_num = omp_get_max_threads();
+	if (argc >= 3) {
+		int thr_num = atoi(argv[2]);
+		if (1 <= thr_num && thr_num <= omp_get_max_threads()) {
+			threads_num = thr_num;
+		}
+		else {
+			cout << "error : wrong threads_num : " << argv[2] << endl;
+			return -1;
+		}
+	}
+	omp_set_num_threads(threads_num);
+	cout << "threads_num: " << threads_num << endl;
+	cout << "-------------------------" << endl;
+	
+	int ite = 1000;
+	if (argc >= 4) {
+		int it = atoi(argv[3]);
+		if (1 <= it && it <= 100000) {
+			ite = it;
+		}
+		else {
+			cout << "error : wrong number of iterations : " << argv[3] << endl;
+			return -1;
+		}
+	}
+	cout << "ite: " << ite << endl;
+	cout << "-------------------------" << endl;
+	
 	char* filename = argv[1];
 	matrix_CSR mtx_CSR;
 	try {
@@ -94,16 +125,6 @@ int main(int argc, char** argv) {
 		cout << v.value[i] << " ";
 	}
 	cout << "..." << endl;
-	cout << "-------------------------" << endl;
-	
-	int threads_num = omp_get_max_threads();
-	omp_set_num_threads(threads_num);
-	cout << "threads_num: " << threads_num << endl;
-	cout << "-------------------------" << endl;
-	
-	int ite = 1000;
-	cout << "ite: " << ite << endl;
-	cout << "-------------------------" << endl;
 	
 	// warm up
 	for (int it = 0; it < 5; it++) {
@@ -222,6 +243,8 @@ int main(int argc, char** argv) {
 	
 	cout << "-------------------------" << endl;
 	cout << "!!!!!!!!!!!!!!!!!!!!!!!!!" << endl;
+	cout << "             threads_num: " << threads_num << endl;
+	cout << "                     ite: " << ite << endl;
 	cout << "                  matrix: " << filename << endl;
 	cout << "              spmv_naive: " << spmv_naive_result / ite << "ms per iteration" << endl;
 	cout << "          spmv_albus_omp: " << spmv_albus_omp_result / ite << "ms per iteration" << endl;

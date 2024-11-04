@@ -113,5 +113,23 @@ matrix_SELL_C_sigma convert_CSR_to_SELL_C_sigma(const matrix_CSR& mtx_CSR) {
 			res.col[indx] = mtx_CSR.col[j];
 		}
 	}
+	
+	/*
+	// test
+	for (int i = 0; i < res.N / 8; i++) {
+		for (int j = res.cs[i]; j < res.cs[i + 1]; j += 8) {
+			int mx = 0;
+			for (int k = 0; k < 8; k++) {
+				mx = std::max(mx, res.col[j + k]);
+			}
+			for (int k = 0; k < 8; k++) {
+				if (res.value[j + k] == 0) {
+					res.col[j + k] = mx;
+				}
+			}
+		}
+	}
+	*/
+	
 	return res;
 }
