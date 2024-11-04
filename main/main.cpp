@@ -179,26 +179,44 @@ int main(int argc, char** argv) {
 	cout << "-------------------------" << endl;
 	
 	
-	cout << "mtx_SELL_C_sigma" << endl;
-	matrix_SELL_C_sigma mtx_SELL_C_sigma = convert_CSR_to_SELL_C_sigma(mtx_CSR);
+	cout << "mtx_SELL_C_sigma<8, 1>" << endl;
+	matrix_SELL_C_sigma<8, 1> mtx_SELL_8_1 = convert_CSR_to_SELL_C_sigma<8, 1>(mtx_CSR);
 	
 	for (int it = 0; it < 5; it++) {
-		vector_format res = spmv_sell_c_sigma(mtx_SELL_C_sigma, v, threads_num);
+		vector_format res = spmv_sell_c_sigma(mtx_SELL_8_1, v, threads_num);
 	}
 	MyTimer::SetStartTime();
 	for (int it = 0; it < ite; it++) {
-		vector_format res = spmv_sell_c_sigma(mtx_SELL_C_sigma, v, threads_num);
+		vector_format res = spmv_sell_c_sigma(mtx_SELL_8_1, v, threads_num);
 	}
 	MyTimer::SetEndTime();
-	int spmv_sell_c_sigma_result = MyTimer::GetDifferenceMs();
-	cout << "spmv_sell_c_sigma: " << spmv_sell_c_sigma_result / ite << "ms per iteration" << endl;
-	cout << "(" << spmv_sell_c_sigma_result << "ms for all iterations)" << endl;
+	int spmv_sell_8_1_result = MyTimer::GetDifferenceMs();
+	cout << "mtx_SELL_C_sigma<8, 1>: " << spmv_sell_8_1_result / ite << "ms per iteration" << endl;
+	cout << "(" << spmv_sell_8_1_result << "ms for all iterations)" << endl;
+	cout << "-------------------------" << endl;
+	
+	
+	cout << "mtx_SELL_C_sigma<4, 1>" << endl;
+	matrix_SELL_C_sigma<4, 1> mtx_SELL_4_1 = convert_CSR_to_SELL_C_sigma<4, 1>(mtx_CSR);
+	
+	for (int it = 0; it < 5; it++) {
+		vector_format res = spmv_sell_c_sigma(mtx_SELL_4_1, v, threads_num);
+	}
+	MyTimer::SetStartTime();
+	for (int it = 0; it < ite; it++) {
+		vector_format res = spmv_sell_c_sigma(mtx_SELL_4_1, v, threads_num);
+	}
+	MyTimer::SetEndTime();
+	int spmv_sell_4_1_result = MyTimer::GetDifferenceMs();
+	cout << "mtx_SELL_C_sigma<4, 1>: " << spmv_sell_4_1_result / ite << "ms per iteration" << endl;
+	cout << "(" << spmv_sell_4_1_result << "ms for all iterations)" << endl;
 	cout << "-------------------------" << endl;
 	
 	vector_format res_naive = spmv_naive(mtx_CSR, v, threads_num);
 	vector_format res_albus = spmv_albus_omp(mtx_CSR, v, start, block_start, threads_num);
 	vector_format res_albus_v = spmv_albus_omp_v(mtx_CSR, v, start, block_start, threads_num);
-	vector_format res_scs = spmv_sell_c_sigma(mtx_SELL_C_sigma, v, threads_num);
+	vector_format res_scs_8_1 = spmv_sell_c_sigma(mtx_SELL_8_1, v, threads_num);
+	vector_format res_scs_4_1 = spmv_sell_c_sigma(mtx_SELL_4_1, v, threads_num);
 	
 	double mx_diff = 0;
 	for (int i = 0; i < res_naive.N; i++) {
@@ -214,9 +232,15 @@ int main(int argc, char** argv) {
 	
 	double mx_diff_3 = 0;
 	for (int i = 0; i < res_naive.N; i++) {
-		mx_diff_3 = max(mx_diff_3, abs(res_naive.value[i] - res_scs.value[i]));
+		mx_diff_3 = max(mx_diff_3, abs(res_naive.value[i] - res_scs_8_1.value[i]));
 	}
 	cout << "mx_diff_3: " << mx_diff_3 << endl;
+	
+	double mx_diff_4 = 0;
+	for (int i = 0; i < res_naive.N; i++) {
+		mx_diff_4 = max(mx_diff_4, abs(res_naive.value[i] - res_scs_4_1.value[i]));
+	}
+	cout << "mx_diff_4: " << mx_diff_4 << endl;
 	
 	int cnt = 0;
 	for (int i = 0; i < res_naive.N; i++) {
@@ -249,7 +273,8 @@ int main(int argc, char** argv) {
 	cout << "              spmv_naive: " << spmv_naive_result / ite << "ms per iteration" << endl;
 	cout << "          spmv_albus_omp: " << spmv_albus_omp_result / ite << "ms per iteration" << endl;
 	cout << "        spmv_albus_omp_v: " << spmv_albus_omp_v_result / ite << "ms per iteration" << endl;
-	cout << "spmv_sell_c_sigma_result: " << spmv_sell_c_sigma_result / ite << "ms per iteration" << endl;
+	cout << "    spmv_sell_8_1_result: " << spmv_sell_8_1_result / ite << "ms per iteration" << endl;
+	cout << "    spmv_sell_4_1_result: " << spmv_sell_4_1_result / ite << "ms per iteration" << endl;
 	cout << "!!!!!!!!!!!!!!!!!!!!!!!!!" << endl;
 	
 	/*

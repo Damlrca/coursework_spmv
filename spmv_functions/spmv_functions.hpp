@@ -24,7 +24,7 @@ vector_format spmv_albus_omp(const matrix_CSR& mtx_CSR, const vector_format& vec
 
 vector_format spmv_albus_omp_v(const matrix_CSR& mtx_CSR, const vector_format& vec, int* start, int* block_start, int threads_num);
 
-// TODO
-vector_format spmv_sell_c_sigma(const matrix_SELL_C_sigma& mtx, const vector_format& vec, int threads_num);
+vector_format spmv_sell_c_sigma(const matrix_SELL_C_sigma<8, 1>& mtx, const vector_format& vec, int threads_num);
+vector_format spmv_sell_c_sigma(const matrix_SELL_C_sigma<4, 1>& mtx, const vector_format& vec, int threads_num);
 
 #endif // !SPMV_FUNCTIONS_HPP

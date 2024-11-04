@@ -206,7 +206,7 @@ vector_format spmv_albus_omp_v(const matrix_CSR& mtx_CSR, const vector_format& v
 	return res;
 }
 
-vector_format spmv_sell_c_sigma(const matrix_SELL_C_sigma& mtx, const vector_format& vec, int threads_num) {
+vector_format spmv_sell_c_sigma(const matrix_SELL_C_sigma<8, 1>& mtx, const vector_format& vec, int threads_num) {
 	vector_format res;
 	
 	res.N = mtx.N;
@@ -224,6 +224,29 @@ vector_format spmv_sell_c_sigma(const matrix_SELL_C_sigma& mtx, const vector_for
 			v_summ = vfmacc_vv_f64m4(v_summ, v_1, v_2, 8);
 		}
 		vse64_v_f64m4(res.value + i * 8, v_summ, 8);
+	}
+	
+	return res;
+}
+
+vector_format spmv_sell_c_sigma(const matrix_SELL_C_sigma<4, 1>& mtx, const vector_format& vec, int threads_num) {
+	vector_format res;
+	
+	res.N = mtx.N;
+	res.value = new double[res.N];
+	std::memset(res.value, 0, sizeof(double) * res.N);
+	
+#pragma omp parallel for num_threads(threads_num)
+	for (int i = 0; i < mtx.N / 4; i++) {
+		vfloat64m2_t v_summ = vfmv_v_f_f64m2(0.0, 4);
+		for (int j = mtx.cs[i]; j < mtx.cs[i + 1]; j += 4) {
+			vuint32m1_t index = vle32_v_u32m1(reinterpret_cast<uint32_t *>(mtx.col + j), 4);
+			vuint32m1_t index_shftd = vsll_vx_u32m1(index, 3, 4);
+			vfloat64m2_t v_1 = vluxei32_v_f64m2(vec.value, index_shftd, 4);
+			vfloat64m2_t v_2 = vle64_v_f64m2(mtx.value + j, 4);
+			v_summ = vfmacc_vv_f64m2(v_summ, v_1, v_2, 4);
+		}
+		vse64_v_f64m2(res.value + i * 4, v_summ, 4);
 	}
 	
 	return res;

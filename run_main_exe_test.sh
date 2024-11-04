@@ -6,7 +6,7 @@ echo start_run_main_exe_test
 
 date
 
-./main_exe ../test_mtx/cant.mtx 4 5000
+./main_exe ../test_mtx/cant.mtx 4 100
 
 echo end_run_main_exe_test
 
