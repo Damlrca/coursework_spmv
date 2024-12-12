@@ -123,20 +123,20 @@ static inline double RV_fast1(int start1, int num, int* col_idx, double * mtx_va
 	int end1 = start1 + num;
 	double answer = 0;
 	
-	vfloat64m4_t v_summ = vfmv_v_f_f64m4(0.0, vl);
+	vfloat64m4_t v_summ = __riscv_vfmv_v_f_f64m4(0.0, vl);
 	while (num > vl) {
-		vuint32m2_t index = vle32_v_u32m2(reinterpret_cast<uint32_t *>(col_idx + start1), vl);
-		vuint32m2_t index_shftd = vsll_vx_u32m2(index, 3, vl);
-		vfloat64m4_t v_1 = vle64_v_f64m4(mtx_val + start1, vl);
+		vuint32m2_t index = __riscv_vle32_v_u32m2(reinterpret_cast<uint32_t *>(col_idx + start1), vl);
+		vuint32m2_t index_shftd = __riscv_vsll_vx_u32m2(index, 3, vl);
+		vfloat64m4_t v_1 = __riscv_vle64_v_f64m4(mtx_val + start1, vl);
 		//vfloat64m4_t v_2 = vluxei32_v_f64m4(vec_val, index_shftd, vl);
-		vfloat64m4_t v_2 = vloxei32_v_f64m4(vec_val, index_shftd, vl); // test vlox
-		v_summ = vfmacc_vv_f64m4(v_summ, v_1, v_2, vl);
+		vfloat64m4_t v_2 = __riscv_vloxei32_v_f64m4(vec_val, index_shftd, vl); // test vlox
+		v_summ = __riscv_vfmacc_vv_f64m4(v_summ, v_1, v_2, vl);
 		start1 += vl;
 		num -= vl;
 	}
-	vfloat64m1_t v_res = vfmv_v_f_f64m1(0.0, vsetvlmax_e64m1());
-	v_res = vfredosum_vs_f64m4_f64m1(v_res, v_summ, v_res, vl);
-	vse64_v_f64m1(&answer, v_res, 1);
+	vfloat64m1_t v_res = __riscv_vfmv_v_f_f64m1(0.0, __riscv_vsetvlmax_e64m1());
+	v_res = __riscv_vfredosum_vs_f64m4_f64m1(v_summ, v_res, vl);
+	__riscv_vse64_v_f64m1(&answer, v_res, 1);
 	while (start1 < end1) {
 		answer += mtx_val[start1] * vec_val[col_idx[start1]];
 		start1++;
@@ -215,15 +215,15 @@ vector_format spmv_sell_c_sigma(const matrix_SELL_C_sigma<8, 1>& mtx, const vect
 	
 #pragma omp parallel for num_threads(threads_num)
 	for (int i = 0; i < mtx.N / 8; i++) {
-		vfloat64m4_t v_summ = vfmv_v_f_f64m4(0.0, 8);
+		vfloat64m4_t v_summ = __riscv_vfmv_v_f_f64m4(0.0, 8);
 		for (int j = mtx.cs[i]; j < mtx.cs[i + 1]; j += 8) {
-			vuint32m2_t index = vle32_v_u32m2(reinterpret_cast<uint32_t *>(mtx.col + j), 8);
-			vuint32m2_t index_shftd = vsll_vx_u32m2(index, 3, 8);
-			vfloat64m4_t v_1 = vluxei32_v_f64m4(vec.value, index_shftd, 8);
-			vfloat64m4_t v_2 = vle64_v_f64m4(mtx.value + j, 8);
-			v_summ = vfmacc_vv_f64m4(v_summ, v_1, v_2, 8);
+			vuint32m2_t index = __riscv_vle32_v_u32m2(reinterpret_cast<uint32_t *>(mtx.col + j), 8);
+			vuint32m2_t index_shftd = __riscv_vsll_vx_u32m2(index, 3, 8);
+			vfloat64m4_t v_1 = __riscv_vluxei32_v_f64m4(vec.value, index_shftd, 8);
+			vfloat64m4_t v_2 = __riscv_vle64_v_f64m4(mtx.value + j, 8);
+			v_summ = __riscv_vfmacc_vv_f64m4(v_summ, v_1, v_2, 8);
 		}
-		vse64_v_f64m4(res.value + i * 8, v_summ, 8);
+		__riscv_vse64_v_f64m4(res.value + i * 8, v_summ, 8);
 	}
 	
 	return res;
@@ -238,15 +238,15 @@ vector_format spmv_sell_c_sigma(const matrix_SELL_C_sigma<4, 1>& mtx, const vect
 	
 #pragma omp parallel for num_threads(threads_num)
 	for (int i = 0; i < mtx.N / 4; i++) {
-		vfloat64m2_t v_summ = vfmv_v_f_f64m2(0.0, 4);
+		vfloat64m2_t v_summ = __riscv_vfmv_v_f_f64m2(0.0, 4);
 		for (int j = mtx.cs[i]; j < mtx.cs[i + 1]; j += 4) {
-			vuint32m1_t index = vle32_v_u32m1(reinterpret_cast<uint32_t *>(mtx.col + j), 4);
-			vuint32m1_t index_shftd = vsll_vx_u32m1(index, 3, 4);
-			vfloat64m2_t v_1 = vluxei32_v_f64m2(vec.value, index_shftd, 4);
-			vfloat64m2_t v_2 = vle64_v_f64m2(mtx.value + j, 4);
-			v_summ = vfmacc_vv_f64m2(v_summ, v_1, v_2, 4);
+			vuint32m1_t index = __riscv_vle32_v_u32m1(reinterpret_cast<uint32_t *>(mtx.col + j), 4);
+			vuint32m1_t index_shftd = __riscv_vsll_vx_u32m1(index, 3, 4);
+			vfloat64m2_t v_1 = __riscv_vluxei32_v_f64m2(vec.value, index_shftd, 4);
+			vfloat64m2_t v_2 = __riscv_vle64_v_f64m2(mtx.value + j, 4);
+			v_summ = __riscv_vfmacc_vv_f64m2(v_summ, v_1, v_2, 4);
 		}
-		vse64_v_f64m2(res.value + i * 4, v_summ, 4);
+		__riscv_vse64_v_f64m2(res.value + i * 4, v_summ, 4);
 	}
 	
 	return res;
