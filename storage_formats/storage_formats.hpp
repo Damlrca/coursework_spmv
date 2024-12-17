@@ -137,7 +137,10 @@ matrix_SELL_C_sigma<C, sigma> convert_CSR_to_SELL_C_sigma(const matrix_CSR& mtx_
 		for (int j = mtx_CSR.row_id[i]; j < mtx_CSR.row_id[i + 1]; j++) {
 			int indx = res.cs[i / C] + (i - i / C * C) + (j - mtx_CSR.row_id[i]) * C;
 			res.value[indx] = mtx_CSR.value[j];
-			res.col[indx] = mtx_CSR.col[j];
+			
+			// index of column in bits
+			// res.col[indx] = mtx_CSR.col[j];
+			res.col[indx] = mtx_CSR.col[j] * 8;
 		}
 	}
 	

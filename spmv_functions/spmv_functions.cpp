@@ -217,8 +217,12 @@ vector_format spmv_sell_c_sigma(const matrix_SELL_C_sigma<8, 1>& mtx, const vect
 	for (int i = 0; i < mtx.N / 8; i++) {
 		vfloat64m4_t v_summ = __riscv_vfmv_v_f_f64m4(0.0, 8);
 		for (int j = mtx.cs[i]; j < mtx.cs[i + 1]; j += 8) {
-			vuint32m2_t index = __riscv_vle32_v_u32m2(reinterpret_cast<uint32_t *>(mtx.col + j), 8);
-			vuint32m2_t index_shftd = __riscv_vsll_vx_u32m2(index, 3, 8);
+			
+			// index of column in bits
+			// vuint32m2_t index = __riscv_vle32_v_u32m2(reinterpret_cast<uint32_t *>(mtx.col + j), 8);
+			// vuint32m2_t index_shftd = __riscv_vsll_vx_u32m2(index, 3, 8);
+			vuint32m2_t index_shftd = __riscv_vle32_v_u32m2(reinterpret_cast<uint32_t *>(mtx.col + j), 8);
+			
 			vfloat64m4_t v_1 = __riscv_vluxei32_v_f64m4(vec.value, index_shftd, 8);
 			vfloat64m4_t v_2 = __riscv_vle64_v_f64m4(mtx.value + j, 8);
 			v_summ = __riscv_vfmacc_vv_f64m4(v_summ, v_1, v_2, 8);
@@ -240,8 +244,12 @@ vector_format spmv_sell_c_sigma(const matrix_SELL_C_sigma<4, 1>& mtx, const vect
 	for (int i = 0; i < mtx.N / 4; i++) {
 		vfloat64m2_t v_summ = __riscv_vfmv_v_f_f64m2(0.0, 4);
 		for (int j = mtx.cs[i]; j < mtx.cs[i + 1]; j += 4) {
-			vuint32m1_t index = __riscv_vle32_v_u32m1(reinterpret_cast<uint32_t *>(mtx.col + j), 4);
-			vuint32m1_t index_shftd = __riscv_vsll_vx_u32m1(index, 3, 4);
+			
+			// index of column in bits
+			// vuint32m1_t index = __riscv_vle32_v_u32m1(reinterpret_cast<uint32_t *>(mtx.col + j), 4);
+			// vuint32m1_t index_shftd = __riscv_vsll_vx_u32m1(index, 3, 4);
+			vuint32m1_t index_shftd = __riscv_vle32_v_u32m1(reinterpret_cast<uint32_t *>(mtx.col + j), 4);
+			
 			vfloat64m2_t v_1 = __riscv_vluxei32_v_f64m2(vec.value, index_shftd, 4);
 			vfloat64m2_t v_2 = __riscv_vle64_v_f64m2(mtx.value + j, 4);
 			v_summ = __riscv_vfmacc_vv_f64m2(v_summ, v_1, v_2, 4);
