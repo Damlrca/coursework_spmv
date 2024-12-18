@@ -7,12 +7,32 @@
 #include <omp.h>
 
 #include "spmv_functions.hpp"
-vector_format spmv_naive(const matrix_CSR& mtx_CSR, const vector_format& vec, int threads_num) {
+
+vector_format alloc_vector_res(const matrix_CSR& mtx_CSR) {
 	vector_format res;
 	res.N = mtx_CSR.N;
 	res.value = new double[res.N];
 	std::memset(res.value, 0, sizeof(double) * res.N);
-	
+	return res;
+}
+
+vector_format alloc_vector_res(const matrix_SELL_C_sigma<8, 1>& mtx) {
+	vector_format res;
+	res.N = mtx.N;
+	res.value = new double[res.N];
+	std::memset(res.value, 0, sizeof(double) * res.N);
+	return res;
+}
+
+vector_format alloc_vector_res(const matrix_SELL_C_sigma<4, 1>& mtx) {
+	vector_format res;
+	res.N = mtx.N;
+	res.value = new double[res.N];
+	std::memset(res.value, 0, sizeof(double) * res.N);
+	return res;
+}
+
+void spmv_naive_noalloc(const matrix_CSR& mtx_CSR, const vector_format& vec, int threads_num, vector_format& res) {
 #pragma omp parallel for num_threads(threads_num)
 	for (int i = 0; i < mtx_CSR.N; i++) {
 		double temp = 0;
@@ -21,6 +41,11 @@ vector_format spmv_naive(const matrix_CSR& mtx_CSR, const vector_format& vec, in
 		}
 		res.value[i] = temp;
 	}
+}
+
+vector_format spmv_naive(const matrix_CSR& mtx_CSR, const vector_format& vec, int threads_num) {
+	vector_format res = alloc_vector_res(mtx_CSR);
+	spmv_naive_noalloc(mtx_CSR, vec, threads_num, res);
 	return res;
 }
 
@@ -84,10 +109,7 @@ static inline void albus_thread_block(double* mtx_val, int* mtx_col, int* row_id
 	}
 }
 
-vector_format spmv_albus_omp(const matrix_CSR& mtx_CSR, const vector_format& vec, int* start, int* block_start, int threads_num) {
-	vector_format res;
-	res.N = mtx_CSR.N;
-	res.value = new double[res.N];
+void spmv_albus_omp_noalloc(const matrix_CSR& mtx_CSR, const vector_format& vec, int* start, int* block_start, int threads_num, vector_format& res) {
 	std::memset(res.value, 0, sizeof(double) * res.N);
 	
 	double *mid_ans = new double[threads_num * 2];
@@ -104,7 +126,11 @@ vector_format spmv_albus_omp(const matrix_CSR& mtx_CSR, const vector_format& vec
 	}
 	
 	delete[] mid_ans;
-		
+}
+
+vector_format spmv_albus_omp(const matrix_CSR& mtx_CSR, const vector_format& vec, int* start, int* block_start, int threads_num) {
+	vector_format res = alloc_vector_res(mtx_CSR);
+	spmv_albus_omp_noalloc(mtx_CSR, vec, start, block_start, threads_num, res);
 	return res;
 }
 
@@ -182,10 +208,7 @@ static inline void albus_thread_block_v(double* mtx_val, int* mtx_col, int* row_
 	}
 }
 
-vector_format spmv_albus_omp_v(const matrix_CSR& mtx_CSR, const vector_format& vec, int* start, int* block_start, int threads_num) {
-	vector_format res;
-	res.N = mtx_CSR.N;
-	res.value = new double[res.N];
+void spmv_albus_omp_v_noalloc(const matrix_CSR& mtx_CSR, const vector_format& vec, int* start, int* block_start, int threads_num, vector_format& res) {
 	std::memset(res.value, 0, sizeof(double) * res.N);
 	
 	double *mid_ans = new double[threads_num * 2];
@@ -202,18 +225,16 @@ vector_format spmv_albus_omp_v(const matrix_CSR& mtx_CSR, const vector_format& v
 	}
 	
 	delete[] mid_ans;
-		
+}
+
+vector_format spmv_albus_omp_v(const matrix_CSR& mtx_CSR, const vector_format& vec, int* start, int* block_start, int threads_num) {
+	vector_format res = alloc_vector_res(mtx_CSR);
+	spmv_albus_omp_v_noalloc(mtx_CSR, vec, start, block_start, threads_num, res);
 	return res;
 }
 
-vector_format spmv_sell_c_sigma(const matrix_SELL_C_sigma<8, 1>& mtx, const vector_format& vec, int threads_num) {
-	vector_format res;
-	
-	res.N = mtx.N;
-	res.value = new double[res.N];
-	std::memset(res.value, 0, sizeof(double) * res.N);
-	
-#pragma omp parallel for num_threads(threads_num)
+void spmv_sell_c_sigma_noalloc(const matrix_SELL_C_sigma<8, 1>& mtx, const vector_format& vec, int threads_num, vector_format& res) {
+	#pragma omp parallel for num_threads(threads_num)
 	for (int i = 0; i < mtx.N / 8; i++) {
 		vfloat64m4_t v_summ = __riscv_vfmv_v_f_f64m4(0.0, 8);
 		for (int j = mtx.cs[i]; j < mtx.cs[i + 1]; j += 8) {
@@ -229,17 +250,15 @@ vector_format spmv_sell_c_sigma(const matrix_SELL_C_sigma<8, 1>& mtx, const vect
 		}
 		__riscv_vse64_v_f64m4(res.value + i * 8, v_summ, 8);
 	}
-	
+}
+
+vector_format spmv_sell_c_sigma(const matrix_SELL_C_sigma<8, 1>& mtx, const vector_format& vec, int threads_num) {
+	vector_format res = alloc_vector_res(mtx);
+	spmv_sell_c_sigma_noalloc(mtx, vec, threads_num, res);
 	return res;
 }
 
-vector_format spmv_sell_c_sigma(const matrix_SELL_C_sigma<4, 1>& mtx, const vector_format& vec, int threads_num) {
-	vector_format res;
-	
-	res.N = mtx.N;
-	res.value = new double[res.N];
-	std::memset(res.value, 0, sizeof(double) * res.N);
-	
+void spmv_sell_c_sigma_noalloc(const matrix_SELL_C_sigma<4, 1>& mtx, const vector_format& vec, int threads_num, vector_format& res) {
 #pragma omp parallel for num_threads(threads_num)
 	for (int i = 0; i < mtx.N / 4; i++) {
 		vfloat64m2_t v_summ = __riscv_vfmv_v_f_f64m2(0.0, 4);
@@ -256,6 +275,10 @@ vector_format spmv_sell_c_sigma(const matrix_SELL_C_sigma<4, 1>& mtx, const vect
 		}
 		__riscv_vse64_v_f64m2(res.value + i * 4, v_summ, 4);
 	}
-	
+}
+
+vector_format spmv_sell_c_sigma(const matrix_SELL_C_sigma<4, 1>& mtx, const vector_format& vec, int threads_num) {
+	vector_format res = alloc_vector_res(mtx);
+	spmv_sell_c_sigma_noalloc(mtx, vec, threads_num, res);
 	return res;
 }

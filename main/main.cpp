@@ -130,9 +130,11 @@ int main(int argc, char** argv) {
 	for (int it = 0; it < 5; it++) {
 		vector_format res = spmv_naive(mtx_CSR, v, threads_num);
 	}
+	vector_format naive_res = alloc_vector_res(mtx_CSR); // noalloc
 	MyTimer::SetStartTime();
 	for (int it = 0; it < ite; it++) {
-		vector_format res = spmv_naive(mtx_CSR, v, threads_num);
+		// vector_format res = spmv_naive(mtx_CSR, v, threads_num);
+		spmv_naive_noalloc(mtx_CSR, v, threads_num, naive_res); // noalloc
 	}
 	MyTimer::SetEndTime();
 	int spmv_naive_result = MyTimer::GetDifferenceMs();
@@ -154,9 +156,11 @@ int main(int argc, char** argv) {
 	for (int it = 0; it < 5; it++) {
 		vector_format res = spmv_albus_omp(mtx_CSR, v, start, block_start, threads_num);
 	}
+	vector_format albus_omp_res = alloc_vector_res(mtx_CSR); // noalloc
 	MyTimer::SetStartTime();
 	for (int it = 0; it < ite; it++) {
-		vector_format res = spmv_albus_omp(mtx_CSR, v, start, block_start, threads_num);
+		// vector_format res = spmv_albus_omp(mtx_CSR, v, start, block_start, threads_num);
+		spmv_albus_omp_noalloc(mtx_CSR, v, start, block_start, threads_num, albus_omp_res); // noalloc
 	}
 	MyTimer::SetEndTime();
 	int spmv_albus_omp_result = MyTimer::GetDifferenceMs();
@@ -168,9 +172,11 @@ int main(int argc, char** argv) {
 	for (int it = 0; it < 5; it++) {
 		vector_format res = spmv_albus_omp_v(mtx_CSR, v, start, block_start, threads_num);
 	}
+	vector_format albus_omp_v_res = alloc_vector_res(mtx_CSR); // noalloc
 	MyTimer::SetStartTime();
 	for (int it = 0; it < ite; it++) {
-		vector_format res = spmv_albus_omp_v(mtx_CSR, v, start, block_start, threads_num);
+		// vector_format res = spmv_albus_omp_v(mtx_CSR, v, start, block_start, threads_num);
+		spmv_albus_omp_v_noalloc(mtx_CSR, v, start, block_start, threads_num, albus_omp_v_res); // noalloc
 	}
 	MyTimer::SetEndTime();
 	int spmv_albus_omp_v_result = MyTimer::GetDifferenceMs();
@@ -185,9 +191,11 @@ int main(int argc, char** argv) {
 	for (int it = 0; it < 5; it++) {
 		vector_format res = spmv_sell_c_sigma(mtx_SELL_8_1, v, threads_num);
 	}
+	vector_format scs_8_1_res = alloc_vector_res(mtx_SELL_8_1); // noalloc
 	MyTimer::SetStartTime();
 	for (int it = 0; it < ite; it++) {
-		vector_format res = spmv_sell_c_sigma(mtx_SELL_8_1, v, threads_num);
+		// vector_format res = spmv_sell_c_sigma(mtx_SELL_8_1, v, threads_num);
+		spmv_sell_c_sigma_noalloc(mtx_SELL_8_1, v, threads_num, scs_8_1_res); // noalloc
 	}
 	MyTimer::SetEndTime();
 	int spmv_sell_8_1_result = MyTimer::GetDifferenceMs();
@@ -202,9 +210,11 @@ int main(int argc, char** argv) {
 	for (int it = 0; it < 5; it++) {
 		vector_format res = spmv_sell_c_sigma(mtx_SELL_4_1, v, threads_num);
 	}
+	vector_format scs_4_1_res = alloc_vector_res(mtx_SELL_4_1); // noalloc
 	MyTimer::SetStartTime();
 	for (int it = 0; it < ite; it++) {
-		vector_format res = spmv_sell_c_sigma(mtx_SELL_4_1, v, threads_num);
+		// vector_format res = spmv_sell_c_sigma(mtx_SELL_4_1, v, threads_num);
+		spmv_sell_c_sigma_noalloc(mtx_SELL_4_1, v, threads_num, scs_4_1_res); // noalloc
 	}
 	MyTimer::SetEndTime();
 	int spmv_sell_4_1_result = MyTimer::GetDifferenceMs();
@@ -212,11 +222,16 @@ int main(int argc, char** argv) {
 	cout << "(" << spmv_sell_4_1_result << "ms for all iterations)" << endl;
 	cout << "-------------------------" << endl;
 	
-	vector_format res_naive = spmv_naive(mtx_CSR, v, threads_num);
-	vector_format res_albus = spmv_albus_omp(mtx_CSR, v, start, block_start, threads_num);
-	vector_format res_albus_v = spmv_albus_omp_v(mtx_CSR, v, start, block_start, threads_num);
-	vector_format res_scs_8_1 = spmv_sell_c_sigma(mtx_SELL_8_1, v, threads_num);
-	vector_format res_scs_4_1 = spmv_sell_c_sigma(mtx_SELL_4_1, v, threads_num);
+	// vector_format res_naive = spmv_naive(mtx_CSR, v, threads_num);
+	vector_format res_naive = std::move(naive_res);
+	// vector_format res_albus = spmv_albus_omp(mtx_CSR, v, start, block_start, threads_num);
+	vector_format res_albus = std::move(albus_omp_res);
+	// vector_format res_albus_v = spmv_albus_omp_v(mtx_CSR, v, start, block_start, threads_num);
+	vector_format res_albus_v = std::move(albus_omp_v_res);
+	// vector_format res_scs_8_1 = spmv_sell_c_sigma(mtx_SELL_8_1, v, threads_num);
+	vector_format res_scs_8_1 = std::move(scs_8_1_res);
+	// vector_format res_scs_4_1 = spmv_sell_c_sigma(mtx_SELL_4_1, v, threads_num);
+	vector_format res_scs_4_1 = std::move(scs_4_1_res);
 	
 	double mx_diff = 0;
 	for (int i = 0; i < res_naive.N; i++) {
