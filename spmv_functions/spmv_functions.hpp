@@ -38,4 +38,9 @@ void spmv_sell_c_sigma_noalloc(const matrix_SELL_C_sigma<8, 1>& mtx, const vecto
 vector_format spmv_sell_c_sigma(const matrix_SELL_C_sigma<4, 1>& mtx, const vector_format& vec, int threads_num);
 void spmv_sell_c_sigma_noalloc(const matrix_SELL_C_sigma<4, 1>& mtx, const vector_format& vec, int threads_num, vector_format& res);
 
+// SELL_C_SIGMA_no_vec
+
+void spmv_sell_c_sigma_noalloc_novec(const matrix_SELL_C_sigma<8, 1>& mtx, const vector_format& vec, int threads_num, vector_format& res);
+void spmv_sell_c_sigma_noalloc_novec(const matrix_SELL_C_sigma<4, 1>& mtx, const vector_format& vec, int threads_num, vector_format& res);
+
 #endif // !SPMV_FUNCTIONS_HPP

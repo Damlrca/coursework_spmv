@@ -234,7 +234,7 @@ vector_format spmv_albus_omp_v(const matrix_CSR& mtx_CSR, const vector_format& v
 }
 
 void spmv_sell_c_sigma_noalloc(const matrix_SELL_C_sigma<8, 1>& mtx, const vector_format& vec, int threads_num, vector_format& res) {
-	#pragma omp parallel for num_threads(threads_num)
+#pragma omp parallel for num_threads(threads_num) schedule(dynamic)
 	for (int i = 0; i < mtx.N / 8; i++) {
 		vfloat64m4_t v_summ = __riscv_vfmv_v_f_f64m4(0.0, 8);
 		for (int j = mtx.cs[i]; j < mtx.cs[i + 1]; j += 8) {
@@ -259,7 +259,7 @@ vector_format spmv_sell_c_sigma(const matrix_SELL_C_sigma<8, 1>& mtx, const vect
 }
 
 void spmv_sell_c_sigma_noalloc(const matrix_SELL_C_sigma<4, 1>& mtx, const vector_format& vec, int threads_num, vector_format& res) {
-#pragma omp parallel for num_threads(threads_num)
+#pragma omp parallel for num_threads(threads_num) schedule(dynamic)
 	for (int i = 0; i < mtx.N / 4; i++) {
 		vfloat64m2_t v_summ = __riscv_vfmv_v_f_f64m2(0.0, 4);
 		for (int j = mtx.cs[i]; j < mtx.cs[i + 1]; j += 4) {
@@ -281,4 +281,47 @@ vector_format spmv_sell_c_sigma(const matrix_SELL_C_sigma<4, 1>& mtx, const vect
 	vector_format res = alloc_vector_res(mtx);
 	spmv_sell_c_sigma_noalloc(mtx, vec, threads_num, res);
 	return res;
+}
+
+
+void spmv_sell_c_sigma_noalloc_novec(const matrix_SELL_C_sigma<8, 1>& mtx, const vector_format& vec, int threads_num, vector_format& res) {
+#pragma omp parallel for num_threads(threads_num) schedule(dynamic)
+	for (int i = 0; i < mtx.N / 8; i++) {
+		//vfloat64m4_t v_summ = __riscv_vfmv_v_f_f64m4(0.0, 8);
+		double v_summ[8]{};
+		for (int j = mtx.cs[i]; j < mtx.cs[i + 1]; j += 8) {
+			//vuint32m2_t index_shftd = __riscv_vle32_v_u32m2(reinterpret_cast<uint32_t *>(mtx.col + j), 8);
+			//vfloat64m4_t v_1 = __riscv_vluxei32_v_f64m4(vec.value, index_shftd, 8);
+			//vfloat64m4_t v_2 = __riscv_vle64_v_f64m4(mtx.value + j, 8);
+			//v_summ = __riscv_vfmacc_vv_f64m4(v_summ, v_1, v_2, 8);
+			for (int k = 0; k < 8; k++) {
+				v_summ[k] += vec.value[*(mtx.col + j + k) >> 3] * mtx.value[j + k];
+			}
+		}
+		//__riscv_vse64_v_f64m4(res.value + i * 8, v_summ, 8);
+		for (int k = 0; k < 8; k++) {
+			res.value[i * 8 + k] = v_summ[k];
+		}
+	}
+}
+
+void spmv_sell_c_sigma_noalloc_novec(const matrix_SELL_C_sigma<4, 1>& mtx, const vector_format& vec, int threads_num, vector_format& res) {
+#pragma omp parallel for num_threads(threads_num) schedule(dynamic)
+	for (int i = 0; i < mtx.N / 4; i++) {
+		//vfloat64m2_t v_summ = __riscv_vfmv_v_f_f64m2(0.0, 4);
+		double v_summ[4]{};
+		for (int j = mtx.cs[i]; j < mtx.cs[i + 1]; j += 4) {
+			//vuint32m1_t index_shftd = __riscv_vle32_v_u32m1(reinterpret_cast<uint32_t *>(mtx.col + j), 4);
+			//vfloat64m2_t v_1 = __riscv_vluxei32_v_f64m2(vec.value, index_shftd, 4);
+			//vfloat64m2_t v_2 = __riscv_vle64_v_f64m2(mtx.value + j, 4);
+			//v_summ = __riscv_vfmacc_vv_f64m2(v_summ, v_1, v_2, 4);
+			for (int k = 0; k < 4; k++) {
+				v_summ[k] += vec.value[*(mtx.col + j + k) >> 3] * mtx.value[j + k];
+			}
+		}
+		//__riscv_vse64_v_f64m2(res.value + i * 4, v_summ, 4);
+		for (int k = 0; k < 4; k++) {
+			res.value[i * 4 + k] = v_summ[k];
+		}
+	}
 }
