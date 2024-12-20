@@ -345,23 +345,23 @@ void test_sell_c_sigma_sorted(const int ite, const int threads_num, const matrix
 }
 
 template<int C, int sigma>
-void print_mtx_data_scs(const matrix_CSR& mtx_CSR) {
+void print_mtx_stat_scs(const matrix_CSR& mtx_CSR) {
 	vector<int> permutation;
 	matrix_CSR mtx_CSR_sorted = get_sorted_mtx_CSR(mtx_CSR, permutation);
 	
 	matrix_SELL_C_sigma<C, 1> mtx = convert_CSR_to_SELL_C_sigma<C, 1>(mtx_CSR);
 	matrix_SELL_C_sigma<C, 1> mtx_sorted = convert_CSR_to_SELL_C_sigma<C, 1>(mtx_CSR_sorted);
 	
-	cout << "mtx_scs" << C << " : N=" << mtx.N << " M=" << mtx.N << " nz=" << mtx.cs[mtx.N / C] << endl;
-	cout << "mtx_scs" << C << "S: N=" << mtx_sorted.N << " M=" << mtx_sorted.N << " nz=" << mtx_sorted.cs[mtx_sorted.N / C] << endl;
+	cout << "mtx_scs" << C << " : N=" << mtx.N << " M=" << mtx.M << " nz=" << mtx.cs[mtx.N / C] << endl;
+	cout << "mtx_scs" << C << "S: N=" << mtx_sorted.N << " M=" << mtx_sorted.M << " nz=" << mtx_sorted.cs[mtx_sorted.N / C] << endl;
 }
 
-void print_mtx_data(const matrix_CSR& mtx_CSR) {
-	cout << "mtx_CSR  : N=" << mtx_CSR.N << " M=" << mtx_CSR.N << " nz=" << mtx_CSR.row_id[mtx_CSR.N] << endl;
-	print_mtx_data_scs<2, 1>(mtx_CSR);
-	print_mtx_data_scs<4, 1>(mtx_CSR);
-	print_mtx_data_scs<8, 1>(mtx_CSR);
-	print_mtx_data_scs<16, 1>(mtx_CSR);
+void print_mtx_stat(const matrix_CSR& mtx_CSR) {
+	cout << "mtx_CSR  : N=" << mtx_CSR.N << " M=" << mtx_CSR.M << " nz=" << mtx_CSR.row_id[mtx_CSR.N] << endl;
+	print_mtx_stat_scs<2, 1>(mtx_CSR);
+	print_mtx_stat_scs<4, 1>(mtx_CSR);
+	print_mtx_stat_scs<8, 1>(mtx_CSR);
+	print_mtx_stat_scs<16, 1>(mtx_CSR);
 }
 
 int main(int argc, char** argv) {
@@ -503,7 +503,7 @@ int main(int argc, char** argv) {
 	cout << "ite         : " << ite << endl;
 	cout << "matrix      : " << filename << endl;
 	
-	print_mtx_data(mtx_CSR);
+	print_mtx_stat(mtx_CSR);
 	
 	cout << "spmv_naive             : " << spmv_naive_result << "ms per iteration (minimum)" << endl;
 	cout << "spmv_albus_omp         : " << spmv_albus_omp_result << "ms per iteration (minimum)" << endl;
