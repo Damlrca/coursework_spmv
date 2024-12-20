@@ -7,6 +7,7 @@
 #include <random>
 #include <omp.h>
 #include <cstdlib>
+#include <algorithm>
 
 #include "../storage_formats/storage_formats.hpp"
 #include "../mtx_input/mtx_input.hpp"
@@ -65,6 +66,10 @@ double mx_diff_scs__2_1_novec = 0;
 double mx_diff_scs__4_1_novec = 0;
 double mx_diff_scs__8_1_novec = 0;
 double mx_diff_scs_16_1_novec = 0;
+double mx_diff_scs__2_1_sorted = 0;
+double mx_diff_scs__4_1_sorted = 0;
+double mx_diff_scs__8_1_sorted = 0;
+double mx_diff_scs_16_1_sorted = 0;
 vector_format naive_res;
 long long spmv_naive_result = numeric_limits<long long>::max();
 long long spmv_albus_omp_result = numeric_limits<long long>::max();
@@ -73,6 +78,10 @@ long long spmv_scs__2_1_result = numeric_limits<long long>::max();
 long long spmv_scs__4_1_result = numeric_limits<long long>::max();
 long long spmv_scs__8_1_result = numeric_limits<long long>::max();
 long long spmv_scs_16_1_result = numeric_limits<long long>::max();
+long long spmv_scs__2_1_sorted_result = numeric_limits<long long>::max();
+long long spmv_scs__4_1_sorted_result = numeric_limits<long long>::max();
+long long spmv_scs__8_1_sorted_result = numeric_limits<long long>::max();
+long long spmv_scs_16_1_sorted_result = numeric_limits<long long>::max();
 long long spmv_scs__2_1_novec_result = numeric_limits<long long>::max();
 long long spmv_scs__4_1_novec_result = numeric_limits<long long>::max();
 long long spmv_scs__8_1_novec_result = numeric_limits<long long>::max();
@@ -252,6 +261,109 @@ void test_sell_c_sigma_novec(const int ite, const int threads_num, const matrix_
 	}
 }
 
+matrix_CSR get_sorted_mtx_CSR(const matrix_CSR& mtx, vector<int>& permutation) {
+	matrix_CSR res;
+	res.N = mtx.N;
+	res.M = mtx.M;
+	int nz = mtx.row_id[res.N];
+ 	res.row_id = new int[res.N + 1];
+	res.col = new int[nz];
+	res.value = new double[nz];
+	permutation.resize(res.N);
+	for (int i = 0; i < res.N; i++) {
+		permutation[i] = i;
+	}
+	sort(permutation.begin(), permutation.end(), [&](int i, int j)->bool{
+		return mtx.row_id[i + 1] - mtx.row_id[i] > mtx.row_id[j + 1] - mtx.row_id[j];
+	});
+	res.row_id[0] = 0;
+	for (int i = 0; i < res.N; i++) {
+		int ii = permutation[i];
+		res.row_id[i + 1] = res.row_id[i];
+		for (int j = mtx.row_id[ii]; j < mtx.row_id[ii + 1]; j++) {
+			res.col[res.row_id[i + 1]] = mtx.col[j];
+			res.value[res.row_id[i + 1]] = mtx.value[j];
+			res.row_id[i + 1]++;
+		}
+	}
+	return res;
+}
+
+template<int C>
+void test_sell_c_sigma_sorted(const int ite, const int threads_num, const matrix_CSR& mtx_CSR) {
+	if (C != 2 && C != 4 && C != 8 && C != 16) {
+		cout << "test_sell_c_sigma_sorted : wrong C == " << C << endl;
+		return;
+	}
+	
+	vector<int> permutation;
+	matrix_CSR mtx_CSR_sorted = get_sorted_mtx_CSR(mtx_CSR, permutation);
+	
+	cout << "mtx_SELL_C_sigma<" << C << ", 1> sorted: ";
+	matrix_SELL_C_sigma<C, 1> mtx = convert_CSR_to_SELL_C_sigma<C, 1>(mtx_CSR_sorted);
+	
+	vector_format scs_res = alloc_vector_res(mtx);
+	// warm up
+	for (int it = 0; it < 5; it++) {
+		spmv_sell_c_sigma_noalloc(mtx, v, threads_num, scs_res);
+	}
+	long long res = numeric_limits<long long>::max();
+	for (int it = 0; it < ite; it++) {
+		MyTimer::SetStartTime();
+		spmv_sell_c_sigma_noalloc(mtx, v, threads_num, scs_res);
+		MyTimer::SetEndTime();
+		res = min(res, MyTimer::GetDifferenceMs());
+	}
+	
+	vector_format real_res = alloc_vector_res(mtx);
+	for (int i = 0; i < permutation.size(); i++) {
+		real_res.value[permutation[i]] = scs_res.value[i];
+	}
+	
+	cout << res << "ms per iteration (minimum)" << endl;
+	cout << "-------------------------" << endl;
+	
+	
+	switch (C) {
+		case 2:
+			spmv_scs__2_1_sorted_result = res;
+			mx_diff_scs__2_1_sorted = calc_diff(naive_res, real_res);
+			break;
+		case 4:
+			spmv_scs__4_1_sorted_result = res;
+			mx_diff_scs__4_1_sorted = calc_diff(naive_res, real_res);
+			break;
+		case 8:
+			spmv_scs__8_1_sorted_result = res;
+			mx_diff_scs__8_1_sorted = calc_diff(naive_res, real_res);
+			break;
+		case 16:
+		    spmv_scs_16_1_sorted_result = res;
+			mx_diff_scs_16_1_sorted = calc_diff(naive_res, real_res);
+			break;
+	}
+}
+
+template<int C, int sigma>
+void print_mtx_data_scs(const matrix_CSR& mtx_CSR) {
+	vector<int> permutation;
+	matrix_CSR mtx_CSR_sorted = get_sorted_mtx_CSR(mtx_CSR, permutation);
+	
+	matrix_SELL_C_sigma<C, 1> mtx = convert_CSR_to_SELL_C_sigma<C, 1>(mtx_CSR);
+	matrix_SELL_C_sigma<C, 1> mtx_sorted = convert_CSR_to_SELL_C_sigma<C, 1>(mtx_CSR_sorted);
+	
+	cout << "mtx_scs" << C << " : N=" << mtx.N << " M=" << mtx.N << " nz=" << mtx.cs[mtx.N / C] << endl;
+	cout << "mtx_scs" << C << "S: N=" << mtx_sorted.N << " M=" << mtx_sorted.N << " nz=" << mtx_sorted.cs[mtx_sorted.N / C] << endl;
+}
+
+void print_mtx_data(const matrix_CSR& mtx_CSR) {
+	cout << "mtx_CSR  : N=" << mtx_CSR.N << " M=" << mtx_CSR.N << " nz=" << mtx_CSR.row_id[mtx_CSR.N] << endl;
+	print_mtx_data_scs<2, 1>(mtx_CSR);
+	print_mtx_data_scs<4, 1>(mtx_CSR);
+	print_mtx_data_scs<8, 1>(mtx_CSR);
+	print_mtx_data_scs<16, 1>(mtx_CSR);
+}
+
 int main(int argc, char** argv) {
 	
 	cout << "------------------------------------------------------" << endl;
@@ -340,18 +452,27 @@ int main(int argc, char** argv) {
 	test_sell_c_sigma_novec<8>(ite, threads_num, mtx_CSR);
 	test_sell_c_sigma_novec<16>(ite, threads_num, mtx_CSR);
 	
+	test_sell_c_sigma_sorted<2>(ite, threads_num, mtx_CSR);
+	test_sell_c_sigma_sorted<4>(ite, threads_num, mtx_CSR);
+	test_sell_c_sigma_sorted<8>(ite, threads_num, mtx_CSR);
+	test_sell_c_sigma_sorted<16>(ite, threads_num, mtx_CSR);
 	
 	
-	cout << "mx_diff_albus_omp      : " << mx_diff_albus_omp << endl;
-	cout << "mx_diff_albus_omp_v    : " << mx_diff_albus_omp_v << endl;
-	cout << "mx_diff_scs__2_1       : " << mx_diff_scs__2_1 << endl;
-	cout << "mx_diff_scs__4_1       : " << mx_diff_scs__4_1 << endl;
-	cout << "mx_diff_scs__8_1       : " << mx_diff_scs__8_1 << endl;
-	cout << "mx_diff_scs_16_1       : " << mx_diff_scs_16_1 << endl;
-	cout << "mx_diff_scs__2_1_novec : " << mx_diff_scs__2_1_novec << endl;
-	cout << "mx_diff_scs__4_1_novec : " << mx_diff_scs__4_1_novec << endl;
-	cout << "mx_diff_scs__8_1_novec : " << mx_diff_scs__8_1_novec << endl;
-	cout << "mx_diff_scs_16_1_novec : " << mx_diff_scs_16_1_novec << endl;
+	
+	cout << "mx_diff_albus_omp       : " << mx_diff_albus_omp << endl;
+	cout << "mx_diff_albus_omp_v     : " << mx_diff_albus_omp_v << endl;
+	cout << "mx_diff_scs__2_1        : " << mx_diff_scs__2_1 << endl;
+	cout << "mx_diff_scs__4_1        : " << mx_diff_scs__4_1 << endl;
+	cout << "mx_diff_scs__8_1        : " << mx_diff_scs__8_1 << endl;
+	cout << "mx_diff_scs_16_1        : " << mx_diff_scs_16_1 << endl;
+	cout << "mx_diff_scs__2_1_novec  : " << mx_diff_scs__2_1_novec << endl;
+	cout << "mx_diff_scs__4_1_novec  : " << mx_diff_scs__4_1_novec << endl;
+	cout << "mx_diff_scs__8_1_novec  : " << mx_diff_scs__8_1_novec << endl;
+	cout << "mx_diff_scs_16_1_novec  : " << mx_diff_scs_16_1_novec << endl;
+	cout << "mx_diff_scs__2_1_sorted : " << mx_diff_scs__2_1_sorted << endl;
+	cout << "mx_diff_scs__4_1_sorted : " << mx_diff_scs__4_1_sorted << endl;
+	cout << "mx_diff_scs__8_1_sorted : " << mx_diff_scs__8_1_sorted << endl;
+	cout << "mx_diff_scs_16_1_sorted : " << mx_diff_scs_16_1_sorted << endl;
 	
 	/*
 	int cnt = 0;
@@ -381,6 +502,9 @@ int main(int argc, char** argv) {
 	cout << "threads_num : " << threads_num << endl;
 	cout << "ite         : " << ite << endl;
 	cout << "matrix      : " << filename << endl;
+	
+	print_mtx_data(mtx_CSR);
+	
 	cout << "spmv_naive             : " << spmv_naive_result << "ms per iteration (minimum)" << endl;
 	cout << "spmv_albus_omp         : " << spmv_albus_omp_result << "ms per iteration (minimum)" << endl;
 	cout << "spmv_albus_omp_v       : " << spmv_albus_omp_v_result << "ms per iteration (minimum)" << endl;
@@ -392,6 +516,10 @@ int main(int argc, char** argv) {
 	cout << "spmv_scs__4_1_novec    : " << spmv_scs__4_1_novec_result << "ms per iteration (minimum)" << endl;
 	cout << "spmv_scs__8_1_novec    : " << spmv_scs__8_1_novec_result << "ms per iteration (minimum)" << endl;
 	cout << "spmv_scs_16_1_novec    : " << spmv_scs_16_1_novec_result << "ms per iteration (minimum)" << endl;
+	cout << "spmv_scs__2_1_sorted   : " << spmv_scs__2_1_sorted_result << "ms per iteration (minimum)" << endl;
+	cout << "spmv_scs__4_1_sorted   : " << spmv_scs__4_1_sorted_result << "ms per iteration (minimum)" << endl;
+	cout << "spmv_scs__8_1_sorted   : " << spmv_scs__8_1_sorted_result << "ms per iteration (minimum)" << endl;
+	cout << "spmv_scs_16_1_sorted   : " << spmv_scs_16_1_sorted_result << "ms per iteration (minimum)" << endl;
 	cout << "!!!!!!!!!!!!!!!!!!!!!!!!!" << endl;
 	
  	return 0;
