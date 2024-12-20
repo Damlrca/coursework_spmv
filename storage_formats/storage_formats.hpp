@@ -7,6 +7,7 @@
 #include <utility>
 #include <algorithm>
 #include <cstring>
+#include <memory>
 
 struct matrix_COO {
 	int N = 0;
@@ -87,6 +88,8 @@ struct matrix_SELL_C_sigma {
 	int M = 0;
 	double* value = nullptr;
 	int* col = nullptr;
+	double* value_buf = nullptr;
+	int* col_buf = nullptr;
 	int* cs = nullptr;
 	int* cl = nullptr;
 	matrix_SELL_C_sigma() {}
@@ -98,13 +101,15 @@ struct matrix_SELL_C_sigma {
 		std::swap(M, mtx.M);
 		std::swap(value, mtx.value);
 		std::swap(col, mtx.col);
+		std::swap(value_buf, mtx.value_buf);
+		std::swap(col_buf, mtx.col_buf);
 		std::swap(cs, mtx.cs);
 		std::swap(cl, mtx.cl);
 		return *this;
 	}
 	~matrix_SELL_C_sigma() {
-		delete[] value;
-		delete[] col;
+		delete[] value_buf;
+		delete[] col_buf;
 		delete[] cs;
 		delete[] cl;
 	}
@@ -129,8 +134,14 @@ matrix_SELL_C_sigma<C, sigma> convert_CSR_to_SELL_C_sigma(const matrix_CSR& mtx_
 		S += res.cl[i] * C;
 	}
 	res.cs[res.N / C] = S;
-	res.value = new double[S];
-	res.col = new int[S];
+	res.value_buf = new double[S + C];
+	std::size_t value_buf_size = (S + C) * sizeof(double);
+	void* temp_value_buf = (void*)res.value_buf;
+	res.value = (double*)std::align(C * sizeof(double), S * sizeof(double), temp_value_buf, value_buf_size);
+	res.col_buf = new int[S + C];
+	std::size_t col_buf_size = (S + C) * sizeof(int);
+	void* temp_col_buf = (void*)res.col_buf;
+	res.col = (int*)std::align(C * sizeof(int), S * sizeof(int), temp_col_buf, col_buf_size);
 	memset(res.value, 0, S * sizeof(double));
 	memset(res.col, 0, S * sizeof(int));
 	for (int i = 0; i < mtx_CSR.N; i++) {
