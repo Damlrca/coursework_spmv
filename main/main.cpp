@@ -7,6 +7,7 @@
 #include <random>
 #include <omp.h>
 #include <cstdlib>
+#include <string>
 #include <algorithm>
 
 #include "../storage_formats/storage_formats.hpp"
@@ -22,7 +23,7 @@ using namespace std;
 // usage:
 // cout << MyTimer::GetDifferenceMs() << "ms" << endl;
 class MyTimer {
-	using myclock = std::chrono::system_clock;
+	using myclock = std::chrono::high_resolution_clock;
 	static myclock::time_point start_time;
 	static myclock::time_point end_time;
 public:
@@ -32,8 +33,14 @@ public:
 	static void SetEndTime() {
 		end_time = myclock::now();
 	}
+	/*
 	static long long GetDifferenceMs() {
 		return std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
+	}
+	*/
+	// difference in microseconds (us)
+	static long long GetDifferenceUs() {
+		return std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time).count();
 	}
 };
 
@@ -109,10 +116,10 @@ void test_naive(const int ite, const int threads_num, const matrix_CSR& mtx_CSR)
 		MyTimer::SetStartTime();
 		spmv_naive_noalloc(mtx_CSR, v, threads_num, naive_res);
 		MyTimer::SetEndTime();
-		res = min(res, MyTimer::GetDifferenceMs());
+		res = min(res, MyTimer::GetDifferenceUs());
 	}
 	
-	cout << res << "ms per iteration (minimum)" << endl;
+	cout << res << "us per iteration (minimum)" << endl;
 	cout << "-------------------------" << endl;
 	
 	spmv_naive_result = res;
@@ -140,9 +147,9 @@ void test_albus(const int ite, const int threads_num, const matrix_CSR& mtx_CSR)
 		MyTimer::SetStartTime();
 		spmv_albus_omp_noalloc(mtx_CSR, v, start, block_start, threads_num, albus_omp_res);
 		MyTimer::SetEndTime();
-		res_omp = min(res_omp, MyTimer::GetDifferenceMs());
+		res_omp = min(res_omp, MyTimer::GetDifferenceUs());
 	}
-	cout << res_omp << "ms per iteration (minimum)" << endl;
+	cout << res_omp << "us per iteration (minimum)" << endl;
 	cout << "-------------------------" << endl;
 	
 	cout << "spmv_albus_omp_v: ";
@@ -156,9 +163,9 @@ void test_albus(const int ite, const int threads_num, const matrix_CSR& mtx_CSR)
 		MyTimer::SetStartTime();
 		spmv_albus_omp_v_noalloc(mtx_CSR, v, start, block_start, threads_num, albus_omp_v_res);
 		MyTimer::SetEndTime();
-		res_omp_v = min(res_omp_v, MyTimer::GetDifferenceMs());
+		res_omp_v = min(res_omp_v, MyTimer::GetDifferenceUs());
 	}
-	cout << res_omp_v << "ms per iteration (minimum)" << endl;
+	cout << res_omp_v << "us per iteration (minimum)" << endl;
 	cout << "-------------------------" << endl;
 	
 	spmv_albus_omp_result = res_omp;
@@ -187,10 +194,10 @@ void test_sell_c_sigma(const int ite, const int threads_num, const matrix_CSR& m
 		MyTimer::SetStartTime();
 		spmv_sell_c_sigma_noalloc(mtx, v, threads_num, scs_res);
 		MyTimer::SetEndTime();
-		res = min(res, MyTimer::GetDifferenceMs());
+		res = min(res, MyTimer::GetDifferenceUs());
 	}
 	
-	cout << res << "ms per iteration (minimum)" << endl;
+	cout << res << "us per iteration (minimum)" << endl;
 	cout << "-------------------------" << endl;
 	
 	
@@ -234,10 +241,10 @@ void test_sell_c_sigma_novec(const int ite, const int threads_num, const matrix_
 		MyTimer::SetStartTime();
 		spmv_sell_c_sigma_noalloc_novec(mtx, v, threads_num, scs_res);
 		MyTimer::SetEndTime();
-		res = min(res, MyTimer::GetDifferenceMs());
+		res = min(res, MyTimer::GetDifferenceUs());
 	}
 	
-	cout << res << "ms per iteration (minimum)" << endl;
+	cout << res << "us per iteration (minimum)" << endl;
 	cout << "-------------------------" << endl;
 	
 	
@@ -312,7 +319,7 @@ void test_sell_c_sigma_sorted(const int ite, const int threads_num, const matrix
 		MyTimer::SetStartTime();
 		spmv_sell_c_sigma_noalloc(mtx, v, threads_num, scs_res);
 		MyTimer::SetEndTime();
-		res = min(res, MyTimer::GetDifferenceMs());
+		res = min(res, MyTimer::GetDifferenceUs());
 	}
 	
 	vector_format real_res = alloc_vector_res(mtx);
@@ -320,7 +327,7 @@ void test_sell_c_sigma_sorted(const int ite, const int threads_num, const matrix
 		real_res.value[permutation[i]] = scs_res.value[i];
 	}
 	
-	cout << res << "ms per iteration (minimum)" << endl;
+	cout << res << "us per iteration (minimum)" << endl;
 	cout << "-------------------------" << endl;
 	
 	
@@ -362,6 +369,15 @@ void print_mtx_stat(const matrix_CSR& mtx_CSR) {
 	print_mtx_stat_scs<4, 1>(mtx_CSR);
 	print_mtx_stat_scs<8, 1>(mtx_CSR);
 	print_mtx_stat_scs<16, 1>(mtx_CSR);
+}
+
+string ms_to_us_string(long long time) {
+	string s = to_string(time);
+	if (s.size() < 4) {
+		s = string(4 - s.size(), '0') + s;
+	}
+	string res = s.substr(0, s.size() - 3) + '.' + s.substr(s.size() - 3, 3);
+	return res;
 }
 
 int main(int argc, char** argv) {
@@ -505,21 +521,21 @@ int main(int argc, char** argv) {
 	
 	print_mtx_stat(mtx_CSR);
 	
-	cout << "spmv_naive             : " << spmv_naive_result << "ms per iteration (minimum)" << endl;
-	cout << "spmv_albus_omp         : " << spmv_albus_omp_result << "ms per iteration (minimum)" << endl;
-	cout << "spmv_albus_omp_v       : " << spmv_albus_omp_v_result << "ms per iteration (minimum)" << endl;
-	cout << "spmv_scs__2_1          : " << spmv_scs__2_1_result << "ms per iteration (minimum)" << endl;
-	cout << "spmv_scs__4_1          : " << spmv_scs__4_1_result << "ms per iteration (minimum)" << endl;
-	cout << "spmv_scs__8_1          : " << spmv_scs__8_1_result << "ms per iteration (minimum)" << endl;
-	cout << "spmv_scs_16_1          : " << spmv_scs_16_1_result << "ms per iteration (minimum)" << endl;
-	cout << "spmv_scs__2_1_novec    : " << spmv_scs__2_1_novec_result << "ms per iteration (minimum)" << endl;
-	cout << "spmv_scs__4_1_novec    : " << spmv_scs__4_1_novec_result << "ms per iteration (minimum)" << endl;
-	cout << "spmv_scs__8_1_novec    : " << spmv_scs__8_1_novec_result << "ms per iteration (minimum)" << endl;
-	cout << "spmv_scs_16_1_novec    : " << spmv_scs_16_1_novec_result << "ms per iteration (minimum)" << endl;
-	cout << "spmv_scs__2_1_sorted   : " << spmv_scs__2_1_sorted_result << "ms per iteration (minimum)" << endl;
-	cout << "spmv_scs__4_1_sorted   : " << spmv_scs__4_1_sorted_result << "ms per iteration (minimum)" << endl;
-	cout << "spmv_scs__8_1_sorted   : " << spmv_scs__8_1_sorted_result << "ms per iteration (minimum)" << endl;
-	cout << "spmv_scs_16_1_sorted   : " << spmv_scs_16_1_sorted_result << "ms per iteration (minimum)" << endl;
+	cout << "spmv_naive             : " << ms_to_us_string(spmv_naive_result) << "ms per iteration (minimum)" << endl;
+	cout << "spmv_albus_omp         : " << ms_to_us_string(spmv_albus_omp_result) << "ms per iteration (minimum)" << endl;
+	cout << "spmv_albus_omp_v       : " << ms_to_us_string(spmv_albus_omp_v_result) << "ms per iteration (minimum)" << endl;
+	cout << "spmv_scs__2_1          : " << ms_to_us_string(spmv_scs__2_1_result) << "ms per iteration (minimum)" << endl;
+	cout << "spmv_scs__4_1          : " << ms_to_us_string(spmv_scs__4_1_result) << "ms per iteration (minimum)" << endl;
+	cout << "spmv_scs__8_1          : " << ms_to_us_string(spmv_scs__8_1_result) << "ms per iteration (minimum)" << endl;
+	cout << "spmv_scs_16_1          : " << ms_to_us_string(spmv_scs_16_1_result) << "ms per iteration (minimum)" << endl;
+	cout << "spmv_scs__2_1_novec    : " << ms_to_us_string(spmv_scs__2_1_novec_result) << "ms per iteration (minimum)" << endl;
+	cout << "spmv_scs__4_1_novec    : " << ms_to_us_string(spmv_scs__4_1_novec_result) << "ms per iteration (minimum)" << endl;
+	cout << "spmv_scs__8_1_novec    : " << ms_to_us_string(spmv_scs__8_1_novec_result) << "ms per iteration (minimum)" << endl;
+	cout << "spmv_scs_16_1_novec    : " << ms_to_us_string(spmv_scs_16_1_novec_result) << "ms per iteration (minimum)" << endl;
+	cout << "spmv_scs__2_1_sorted   : " << ms_to_us_string(spmv_scs__2_1_sorted_result) << "ms per iteration (minimum)" << endl;
+	cout << "spmv_scs__4_1_sorted   : " << ms_to_us_string(spmv_scs__4_1_sorted_result) << "ms per iteration (minimum)" << endl;
+	cout << "spmv_scs__8_1_sorted   : " << ms_to_us_string(spmv_scs__8_1_sorted_result) << "ms per iteration (minimum)" << endl;
+	cout << "spmv_scs_16_1_sorted   : " << ms_to_us_string(spmv_scs_16_1_sorted_result) << "ms per iteration (minimum)" << endl;
 	cout << "!!!!!!!!!!!!!!!!!!!!!!!!!" << endl;
 	
  	return 0;
