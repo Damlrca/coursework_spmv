@@ -65,34 +65,34 @@ set<int> random_sample(int n, int m) {
 vector_format v;
 double mx_diff_albus_omp = 0;
 double mx_diff_albus_omp_v = 0;
-double mx_diff_scs__2_1 = 0;
 double mx_diff_scs__4_1 = 0;
 double mx_diff_scs__8_1 = 0;
 double mx_diff_scs_16_1 = 0;
-double mx_diff_scs__2_1_novec = 0;
+double mx_diff_scs_32_1 = 0;
 double mx_diff_scs__4_1_novec = 0;
 double mx_diff_scs__8_1_novec = 0;
 double mx_diff_scs_16_1_novec = 0;
-double mx_diff_scs__2_1_sorted = 0;
+double mx_diff_scs_32_1_novec = 0;
 double mx_diff_scs__4_1_sorted = 0;
 double mx_diff_scs__8_1_sorted = 0;
 double mx_diff_scs_16_1_sorted = 0;
+double mx_diff_scs_32_1_sorted = 0;
 vector_format naive_res;
 long long spmv_naive_result = numeric_limits<long long>::max();
 long long spmv_albus_omp_result = numeric_limits<long long>::max();
 long long spmv_albus_omp_v_result = numeric_limits<long long>::max();
-long long spmv_scs__2_1_result = numeric_limits<long long>::max();
 long long spmv_scs__4_1_result = numeric_limits<long long>::max();
 long long spmv_scs__8_1_result = numeric_limits<long long>::max();
 long long spmv_scs_16_1_result = numeric_limits<long long>::max();
-long long spmv_scs__2_1_sorted_result = numeric_limits<long long>::max();
+long long spmv_scs_32_1_result = numeric_limits<long long>::max();
 long long spmv_scs__4_1_sorted_result = numeric_limits<long long>::max();
 long long spmv_scs__8_1_sorted_result = numeric_limits<long long>::max();
 long long spmv_scs_16_1_sorted_result = numeric_limits<long long>::max();
-long long spmv_scs__2_1_novec_result = numeric_limits<long long>::max();
+long long spmv_scs_32_1_sorted_result = numeric_limits<long long>::max();
 long long spmv_scs__4_1_novec_result = numeric_limits<long long>::max();
 long long spmv_scs__8_1_novec_result = numeric_limits<long long>::max();
 long long spmv_scs_16_1_novec_result = numeric_limits<long long>::max();
+long long spmv_scs_32_1_novec_result = numeric_limits<long long>::max();
 
 double calc_diff(const vector_format& a, const vector_format& b) {
 	double ans = 0;
@@ -176,7 +176,7 @@ void test_albus(const int ite, const int threads_num, const matrix_CSR& mtx_CSR)
 
 template<int C>
 void test_sell_c_sigma(const int ite, const int threads_num, const matrix_CSR& mtx_CSR) {
-	if (C != 2 && C != 4 && C != 8 && C != 16) {
+	if (C != 4 && C != 8 && C != 16 && C != 32) {
 		cout << "test_sell_c_sigma : wrong C == " << C << endl;
 		return;
 	}
@@ -202,10 +202,6 @@ void test_sell_c_sigma(const int ite, const int threads_num, const matrix_CSR& m
 	
 	
 	switch (C) {
-		case 2:
-			spmv_scs__2_1_result = res;
-			mx_diff_scs__2_1 = calc_diff(naive_res, scs_res);
-			break;
 		case 4:
 			spmv_scs__4_1_result = res;
 			mx_diff_scs__4_1 = calc_diff(naive_res, scs_res);
@@ -218,12 +214,16 @@ void test_sell_c_sigma(const int ite, const int threads_num, const matrix_CSR& m
 		    spmv_scs_16_1_result = res;
 			mx_diff_scs_16_1 = calc_diff(naive_res, scs_res);
 			break;
+		case 32:
+		    spmv_scs_32_1_result = res;
+			mx_diff_scs_32_1 = calc_diff(naive_res, scs_res);
+			break;
 	}
 }
 
 template<int C>
 void test_sell_c_sigma_novec(const int ite, const int threads_num, const matrix_CSR& mtx_CSR) {
-	if (C != 2 && C != 4 && C != 8 && C != 16) {
+	if (C != 4 && C != 8 && C != 16 && C != 32) {
 		cout << "test_sell_c_sigma_novec : wrong C == " << C << endl;
 		return;
 	}
@@ -249,10 +249,6 @@ void test_sell_c_sigma_novec(const int ite, const int threads_num, const matrix_
 	
 	
 	switch (C) {
-		case 2:
-			spmv_scs__2_1_novec_result = res;
-			mx_diff_scs__2_1_novec = calc_diff(naive_res, scs_res);
-			break;
 		case 4:
 			spmv_scs__4_1_novec_result = res;
 			mx_diff_scs__4_1_novec = calc_diff(naive_res, scs_res);
@@ -264,6 +260,10 @@ void test_sell_c_sigma_novec(const int ite, const int threads_num, const matrix_
 		case 16:
 		    spmv_scs_16_1_novec_result = res;
 			mx_diff_scs_16_1_novec = calc_diff(naive_res, scs_res);
+			break;
+		case 32:
+		    spmv_scs_32_1_novec_result = res;
+			mx_diff_scs_32_1_novec = calc_diff(naive_res, scs_res);
 			break;
 	}
 }
@@ -298,7 +298,7 @@ matrix_CSR get_sorted_mtx_CSR(const matrix_CSR& mtx, vector<int>& permutation) {
 
 template<int C>
 void test_sell_c_sigma_sorted(const int ite, const int threads_num, const matrix_CSR& mtx_CSR) {
-	if (C != 2 && C != 4 && C != 8 && C != 16) {
+	if (C != 4 && C != 8 && C != 16 && C != 32) {
 		cout << "test_sell_c_sigma_sorted : wrong C == " << C << endl;
 		return;
 	}
@@ -332,10 +332,6 @@ void test_sell_c_sigma_sorted(const int ite, const int threads_num, const matrix
 	
 	
 	switch (C) {
-		case 2:
-			spmv_scs__2_1_sorted_result = res;
-			mx_diff_scs__2_1_sorted = calc_diff(naive_res, real_res);
-			break;
 		case 4:
 			spmv_scs__4_1_sorted_result = res;
 			mx_diff_scs__4_1_sorted = calc_diff(naive_res, real_res);
@@ -347,6 +343,10 @@ void test_sell_c_sigma_sorted(const int ite, const int threads_num, const matrix
 		case 16:
 		    spmv_scs_16_1_sorted_result = res;
 			mx_diff_scs_16_1_sorted = calc_diff(naive_res, real_res);
+			break;
+		case 32:
+		    spmv_scs_32_1_sorted_result = res;
+			mx_diff_scs_32_1_sorted = calc_diff(naive_res, real_res);
 			break;
 	}
 }
@@ -365,10 +365,10 @@ void print_mtx_stat_scs(const matrix_CSR& mtx_CSR) {
 
 void print_mtx_stat(const matrix_CSR& mtx_CSR) {
 	cout << "mtx_CSR  : N=" << mtx_CSR.N << " M=" << mtx_CSR.M << " nz=" << mtx_CSR.row_id[mtx_CSR.N] << endl;
-	print_mtx_stat_scs<2, 1>(mtx_CSR);
 	print_mtx_stat_scs<4, 1>(mtx_CSR);
 	print_mtx_stat_scs<8, 1>(mtx_CSR);
 	print_mtx_stat_scs<16, 1>(mtx_CSR);
+	print_mtx_stat_scs<32, 1>(mtx_CSR);
 }
 
 string ms_to_us_string(long long time) {
@@ -458,37 +458,37 @@ int main(int argc, char** argv) {
 	
 	test_albus(ite, threads_num, mtx_CSR);
 	
-	test_sell_c_sigma<2>(ite, threads_num, mtx_CSR);
 	test_sell_c_sigma<4>(ite, threads_num, mtx_CSR);
 	test_sell_c_sigma<8>(ite, threads_num, mtx_CSR);
 	test_sell_c_sigma<16>(ite, threads_num, mtx_CSR);
+	test_sell_c_sigma<32>(ite, threads_num, mtx_CSR);
 	
-	test_sell_c_sigma_novec<2>(ite, threads_num, mtx_CSR);
 	test_sell_c_sigma_novec<4>(ite, threads_num, mtx_CSR);
 	test_sell_c_sigma_novec<8>(ite, threads_num, mtx_CSR);
 	test_sell_c_sigma_novec<16>(ite, threads_num, mtx_CSR);
+	test_sell_c_sigma_novec<32>(ite, threads_num, mtx_CSR);
 	
-	test_sell_c_sigma_sorted<2>(ite, threads_num, mtx_CSR);
 	test_sell_c_sigma_sorted<4>(ite, threads_num, mtx_CSR);
 	test_sell_c_sigma_sorted<8>(ite, threads_num, mtx_CSR);
 	test_sell_c_sigma_sorted<16>(ite, threads_num, mtx_CSR);
+	test_sell_c_sigma_sorted<32>(ite, threads_num, mtx_CSR);
 	
 	
 	
 	cout << "mx_diff_albus_omp       : " << mx_diff_albus_omp << endl;
 	cout << "mx_diff_albus_omp_v     : " << mx_diff_albus_omp_v << endl;
-	cout << "mx_diff_scs__2_1        : " << mx_diff_scs__2_1 << endl;
 	cout << "mx_diff_scs__4_1        : " << mx_diff_scs__4_1 << endl;
 	cout << "mx_diff_scs__8_1        : " << mx_diff_scs__8_1 << endl;
 	cout << "mx_diff_scs_16_1        : " << mx_diff_scs_16_1 << endl;
-	cout << "mx_diff_scs__2_1_novec  : " << mx_diff_scs__2_1_novec << endl;
+	cout << "mx_diff_scs_32_1        : " << mx_diff_scs_32_1 << endl;
 	cout << "mx_diff_scs__4_1_novec  : " << mx_diff_scs__4_1_novec << endl;
 	cout << "mx_diff_scs__8_1_novec  : " << mx_diff_scs__8_1_novec << endl;
 	cout << "mx_diff_scs_16_1_novec  : " << mx_diff_scs_16_1_novec << endl;
-	cout << "mx_diff_scs__2_1_sorted : " << mx_diff_scs__2_1_sorted << endl;
+	cout << "mx_diff_scs_32_1_novec  : " << mx_diff_scs_32_1_novec << endl;
 	cout << "mx_diff_scs__4_1_sorted : " << mx_diff_scs__4_1_sorted << endl;
 	cout << "mx_diff_scs__8_1_sorted : " << mx_diff_scs__8_1_sorted << endl;
 	cout << "mx_diff_scs_16_1_sorted : " << mx_diff_scs_16_1_sorted << endl;
+	cout << "mx_diff_scs_32_1_sorted : " << mx_diff_scs_32_1_sorted << endl;
 	
 	/*
 	int cnt = 0;
@@ -524,18 +524,35 @@ int main(int argc, char** argv) {
 	cout << "spmv_naive             : " << ms_to_us_string(spmv_naive_result) << "ms per iteration (minimum)" << endl;
 	cout << "spmv_albus_omp         : " << ms_to_us_string(spmv_albus_omp_result) << "ms per iteration (minimum)" << endl;
 	cout << "spmv_albus_omp_v       : " << ms_to_us_string(spmv_albus_omp_v_result) << "ms per iteration (minimum)" << endl;
-	cout << "spmv_scs__2_1          : " << ms_to_us_string(spmv_scs__2_1_result) << "ms per iteration (minimum)" << endl;
 	cout << "spmv_scs__4_1          : " << ms_to_us_string(spmv_scs__4_1_result) << "ms per iteration (minimum)" << endl;
 	cout << "spmv_scs__8_1          : " << ms_to_us_string(spmv_scs__8_1_result) << "ms per iteration (minimum)" << endl;
 	cout << "spmv_scs_16_1          : " << ms_to_us_string(spmv_scs_16_1_result) << "ms per iteration (minimum)" << endl;
-	cout << "spmv_scs__2_1_novec    : " << ms_to_us_string(spmv_scs__2_1_novec_result) << "ms per iteration (minimum)" << endl;
+	cout << "spmv_scs_32_1          : " << ms_to_us_string(spmv_scs_32_1_result) << "ms per iteration (minimum)" << endl;
 	cout << "spmv_scs__4_1_novec    : " << ms_to_us_string(spmv_scs__4_1_novec_result) << "ms per iteration (minimum)" << endl;
 	cout << "spmv_scs__8_1_novec    : " << ms_to_us_string(spmv_scs__8_1_novec_result) << "ms per iteration (minimum)" << endl;
 	cout << "spmv_scs_16_1_novec    : " << ms_to_us_string(spmv_scs_16_1_novec_result) << "ms per iteration (minimum)" << endl;
-	cout << "spmv_scs__2_1_sorted   : " << ms_to_us_string(spmv_scs__2_1_sorted_result) << "ms per iteration (minimum)" << endl;
+	cout << "spmv_scs_32_1_novec    : " << ms_to_us_string(spmv_scs_32_1_novec_result) << "ms per iteration (minimum)" << endl;
 	cout << "spmv_scs__4_1_sorted   : " << ms_to_us_string(spmv_scs__4_1_sorted_result) << "ms per iteration (minimum)" << endl;
 	cout << "spmv_scs__8_1_sorted   : " << ms_to_us_string(spmv_scs__8_1_sorted_result) << "ms per iteration (minimum)" << endl;
 	cout << "spmv_scs_16_1_sorted   : " << ms_to_us_string(spmv_scs_16_1_sorted_result) << "ms per iteration (minimum)" << endl;
+	cout << "spmv_scs_32_1_sorted   : " << ms_to_us_string(spmv_scs_32_1_sorted_result) << "ms per iteration (minimum)" << endl;
+	
+	cout << ms_to_us_string(spmv_naive_result) << "ms" << endl;
+	cout << ms_to_us_string(spmv_albus_omp_result) << "ms" << endl;
+	cout << ms_to_us_string(spmv_albus_omp_v_result) << "ms" << endl;
+	cout << ms_to_us_string(spmv_scs__4_1_result) << "ms" << endl;
+	cout << ms_to_us_string(spmv_scs__8_1_result) << "ms" << endl;
+	cout << ms_to_us_string(spmv_scs_16_1_result) << "ms" << endl;
+	cout << ms_to_us_string(spmv_scs_32_1_result) << "ms" << endl;
+	cout << ms_to_us_string(spmv_scs__4_1_novec_result) << "ms" << endl;
+	cout << ms_to_us_string(spmv_scs__8_1_novec_result) << "ms" << endl;
+	cout << ms_to_us_string(spmv_scs_16_1_novec_result) << "ms" << endl;
+	cout << ms_to_us_string(spmv_scs_32_1_novec_result) << "ms" << endl;
+	cout << ms_to_us_string(spmv_scs__4_1_sorted_result) << "ms" << endl;
+	cout << ms_to_us_string(spmv_scs__8_1_sorted_result) << "ms" << endl;
+	cout << ms_to_us_string(spmv_scs_16_1_sorted_result) << "ms" << endl;
+	cout << ms_to_us_string(spmv_scs_32_1_sorted_result) << "ms" << endl;
+	
 	cout << "!!!!!!!!!!!!!!!!!!!!!!!!!" << endl;
 	
  	return 0;
