@@ -129,23 +129,22 @@ static inline double RV_fast2(int start1, int num, int* col_idx, double * mtx_va
 }
 
 static inline double RV_fast1(int start1, int num, int* col_idx, double * mtx_val, double* vec_val) {
-	constexpr size_t vl = 8;
+	const size_t vl = __riscv_vsetvlmax_e64m2();
 	int end1 = start1 + num;
 	double answer = 0;
 	
-	vfloat64m4_t v_summ = __riscv_vfmv_v_f_f64m4(0.0, vl);
+	vfloat64m2_t v_summ = __riscv_vfmv_v_f_f64m2(0.0, vl);
 	while (num > vl) {
-		vuint32m2_t index = __riscv_vle32_v_u32m2(reinterpret_cast<uint32_t *>(col_idx + start1), vl);
-		vuint32m2_t index_shftd = __riscv_vsll_vx_u32m2(index, 3, vl);
-		vfloat64m4_t v_1 = __riscv_vle64_v_f64m4(mtx_val + start1, vl);
-		//vfloat64m4_t v_2 = vluxei32_v_f64m4(vec_val, index_shftd, vl);
-		vfloat64m4_t v_2 = __riscv_vloxei32_v_f64m4(vec_val, index_shftd, vl); // test vlox
-		v_summ = __riscv_vfmacc_vv_f64m4(v_summ, v_1, v_2, vl);
+		vuint32m1_t index = __riscv_vle32_v_u32m1(reinterpret_cast<uint32_t *>(col_idx + start1), vl);
+		vuint32m1_t index_shftd = __riscv_vsll_vx_u32m1(index, 3, vl);
+		vfloat64m2_t v_1 = __riscv_vle64_v_f64m2(mtx_val + start1, vl);
+		vfloat64m2_t v_2 = __riscv_vluxei32_v_f64m2(vec_val, index_shftd, vl);
+		v_summ = __riscv_vfmacc_vv_f64m2(v_summ, v_1, v_2, vl);
 		start1 += vl;
 		num -= vl;
 	}
 	vfloat64m1_t v_res = __riscv_vfmv_v_f_f64m1(0.0, __riscv_vsetvlmax_e64m1());
-	v_res = __riscv_vfredosum_vs_f64m4_f64m1(v_summ, v_res, vl);
+	v_res = __riscv_vfredosum_vs_f64m2_f64m1(v_summ, v_res, vl);
 	__riscv_vse64_v_f64m1(&answer, v_res, 1);
 	while (start1 < end1) {
 		answer += mtx_val[start1] * vec_val[col_idx[start1]];
@@ -155,8 +154,7 @@ static inline double RV_fast1(int start1, int num, int* col_idx, double * mtx_va
 }
 
 static inline double calculation(int start1, int num, int* col_idx, double * mtx_val, double* vec_val) {
-	// vsetvlmax_e64m4() == 8
-	if (num >= 8)
+	if (num >= __riscv_vsetvlmax_e64m2())
 		return RV_fast1(start1, num, col_idx, mtx_val, vec_val);
 	else
 		return RV_fast2(start1, num, col_idx, mtx_val, vec_val);
