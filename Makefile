@@ -4,6 +4,7 @@
 all: main_exe
 
 # module load Xuantie-900-gcc-linux-5.10.4-glibc-x86_64-V2.8.1
+# module load gcc-riscv64-14.2.0
 CC = riscv64-unknown-linux-gnu-gcc
 CXX = riscv64-unknown-linux-gnu-g++
 CFLAGS = -march=rv64gcv -fopenmp -O2
