@@ -268,33 +268,7 @@ void test_sell_c_sigma_novec(const int ite, const int threads_num, const matrix_
 	}
 }
 
-matrix_CSR get_sorted_mtx_CSR(const matrix_CSR& mtx, vector<int>& permutation) {
-	matrix_CSR res;
-	res.N = mtx.N;
-	res.M = mtx.M;
-	int nz = mtx.row_id[res.N];
- 	res.row_id = new int[res.N + 1];
-	res.col = new int[nz];
-	res.value = new double[nz];
-	permutation.resize(res.N);
-	for (int i = 0; i < res.N; i++) {
-		permutation[i] = i;
-	}
-	sort(permutation.begin(), permutation.end(), [&](int i, int j)->bool{
-		return mtx.row_id[i + 1] - mtx.row_id[i] > mtx.row_id[j + 1] - mtx.row_id[j];
-	});
-	res.row_id[0] = 0;
-	for (int i = 0; i < res.N; i++) {
-		int ii = permutation[i];
-		res.row_id[i + 1] = res.row_id[i];
-		for (int j = mtx.row_id[ii]; j < mtx.row_id[ii + 1]; j++) {
-			res.col[res.row_id[i + 1]] = mtx.col[j];
-			res.value[res.row_id[i + 1]] = mtx.value[j];
-			res.row_id[i + 1]++;
-		}
-	}
-	return res;
-}
+constexpr int SORTED_SIGMA = 10'000'000;
 
 template<int C>
 void test_sell_c_sigma_sorted(const int ite, const int threads_num, const matrix_CSR& mtx_CSR) {
@@ -303,11 +277,8 @@ void test_sell_c_sigma_sorted(const int ite, const int threads_num, const matrix
 		return;
 	}
 	
-	vector<int> permutation;
-	matrix_CSR mtx_CSR_sorted = get_sorted_mtx_CSR(mtx_CSR, permutation);
-	
-	cout << "mtx_SELL_C_sigma<" << C << ", 1> sorted: ";
-	matrix_SELL_C_sigma<C, 1> mtx = convert_CSR_to_SELL_C_sigma<C, 1>(mtx_CSR_sorted);
+	cout << "mtx_SELL_C_sigma<" << C << ", SORTED_SIGMA>: ";
+	matrix_SELL_C_sigma<C, SORTED_SIGMA> mtx = convert_CSR_to_SELL_C_sigma<C, SORTED_SIGMA>(mtx_CSR);
 	
 	vector_format scs_res = alloc_vector_res(mtx);
 	// warm up
@@ -323,8 +294,8 @@ void test_sell_c_sigma_sorted(const int ite, const int threads_num, const matrix
 	}
 	
 	vector_format real_res = alloc_vector_res(mtx);
-	for (int i = 0; i < permutation.size(); i++) {
-		real_res.value[permutation[i]] = scs_res.value[i];
+	for (int i = 0; i < mtx_CSR.N; i++) {
+		real_res.value[mtx.rows_perm[i]] = scs_res.value[i];
 	}
 	
 	cout << res << "us per iteration (minimum)" << endl;
@@ -353,11 +324,8 @@ void test_sell_c_sigma_sorted(const int ite, const int threads_num, const matrix
 
 template<int C, int sigma>
 void print_mtx_stat_scs(const matrix_CSR& mtx_CSR) {
-	vector<int> permutation;
-	matrix_CSR mtx_CSR_sorted = get_sorted_mtx_CSR(mtx_CSR, permutation);
-	
 	matrix_SELL_C_sigma<C, 1> mtx = convert_CSR_to_SELL_C_sigma<C, 1>(mtx_CSR);
-	matrix_SELL_C_sigma<C, 1> mtx_sorted = convert_CSR_to_SELL_C_sigma<C, 1>(mtx_CSR_sorted);
+	matrix_SELL_C_sigma<C, SORTED_SIGMA> mtx_sorted = convert_CSR_to_SELL_C_sigma<C, SORTED_SIGMA>(mtx_CSR);
 	
 	cout << "mtx_scs" << C << " : N=" << mtx.N << " M=" << mtx.M << " nz=" << mtx.cs[mtx.N / C] << endl;
 	cout << "mtx_scs" << C << "S: N=" << mtx_sorted.N << " M=" << mtx_sorted.M << " nz=" << mtx_sorted.cs[mtx_sorted.N / C] << endl;

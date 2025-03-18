@@ -1,4 +1,4 @@
-// Copyright (C) 2024 Sadikov Damir
+// Copyright (C) 2025 Sadikov Damir
 // github.com/Damlrca/coursework_spmv
 
 #ifndef STORAGE_FORMATS_HPP
@@ -6,9 +6,11 @@
 
 #include <utility>
 #include <algorithm>
+#include <numeric>
 #include <cstring>
 #include <memory>
 
+// COO - Coordinate list sparse matrix format
 struct matrix_COO {
 	int N = 0;
 	int M = 0;
@@ -36,6 +38,7 @@ struct matrix_COO {
 	}
 };
 
+// CSR - Compressed sparse row sparse matrix format (CRS - Compressed row storage)
 struct matrix_CSR {
 	int N = 0;
 	int M = 0;
@@ -61,6 +64,11 @@ struct matrix_CSR {
 	}
 };
 
+matrix_CSR convert_COO_to_CSR(const matrix_COO& mtx_COO);
+
+void transpose_CSR(matrix_CSR& mtx_CSR);
+
+// struct for storing a vector
 struct vector_format {
 	int N = 0;
 	double* value = nullptr;
@@ -78,20 +86,22 @@ struct vector_format {
 	}
 };
 
-matrix_CSR convert_COO_to_CSR(const matrix_COO& mtx_COO);
-
-void transpose_CSR(matrix_CSR& mtx_CSR);
-
+// SELL_C_sigma sparse matrix format
+// C - number of rows in block
+// sigma - number of consecutive blocks in which rows are sorted 
+//         in descending order of the number of non-zero elements
+// if sigma is 1 then sorting is not applied
 template<int C, int sigma>
 struct matrix_SELL_C_sigma {
 	int N = 0;
 	int M = 0;
 	double* value = nullptr;
 	int* col = nullptr;
-	double* value_buf = nullptr;
-	int* col_buf = nullptr;
+	double* value_buf = nullptr; // buffer for value (used for align memory)
+	int* col_buf = nullptr; // buffer for col (used for align memory)
 	int* cs = nullptr;
 	int* cl = nullptr;
+	int* rows_perm = nullptr; // permutation of rows
 	matrix_SELL_C_sigma() {}
 	matrix_SELL_C_sigma(matrix_SELL_C_sigma&& mtx) {
 		*this = std::move(mtx);
@@ -105,6 +115,7 @@ struct matrix_SELL_C_sigma {
 		std::swap(col_buf, mtx.col_buf);
 		std::swap(cs, mtx.cs);
 		std::swap(cl, mtx.cl);
+		std::swap(rows_perm, mtx.rows_perm);
 		return *this;
 	}
 	~matrix_SELL_C_sigma() {
@@ -112,6 +123,7 @@ struct matrix_SELL_C_sigma {
 		delete[] col_buf;
 		delete[] cs;
 		delete[] cl;
+		delete[] rows_perm;
 	}
 };
 
@@ -120,13 +132,31 @@ matrix_SELL_C_sigma<C, sigma> convert_CSR_to_SELL_C_sigma(const matrix_CSR& mtx_
 	matrix_SELL_C_sigma<C, sigma> res;
 	res.N = (mtx_CSR.N + C - 1) / C * C;
 	res.M = mtx_CSR.M;
+	res.rows_perm = new int[res.N];
+	std::iota(res.rows_perm, res.rows_perm + res.N, 0);
+	if (sigma != 1) {
+		for (int i = 0; i < res.N; i += C * sigma) {
+			std::sort(res.rows_perm + i, res.rows_perm + std::min(res.N, i + C * sigma), [&](int a, int b)->bool{
+				int sz_a = 0;
+				int sz_b = 0;
+				if (a < mtx_CSR.N) sz_a = mtx_CSR.row_id[a + 1] - mtx_CSR.row_id[a];
+				if (b < mtx_CSR.N) sz_b = mtx_CSR.row_id[b + 1] - mtx_CSR.row_id[b];
+				if (sz_a != sz_b)
+					return sz_a > sz_b;
+				return a < b;
+			});
+		}
+	}
 	res.cs = new int[res.N / C + 1];
 	res.cl = new int[res.N / C];
 	memset(res.cs, 0, (res.N / C + 1) * sizeof(int));
 	memset(res.cl, 0, (res.N / C) * sizeof(int));
-	for (int i = 0; i < mtx_CSR.N; i++) {
-		int i_sz = mtx_CSR.row_id[i + 1] - mtx_CSR.row_id[i];
-		res.cl[i / C] = std::max(res.cl[i / C], i_sz);
+	for (int i = 0; i < res.N; i++) {
+		int i_id = res.rows_perm[i];
+		if (i_id < mtx_CSR.N) {
+			int i_sz = mtx_CSR.row_id[i_id + 1] - mtx_CSR.row_id[i_id];
+			res.cl[i / C] = std::max(res.cl[i / C], i_sz);
+		}
 	}
 	int S = 0;
 	for (int i = 0; i < res.N / C; i++) {
@@ -144,17 +174,17 @@ matrix_SELL_C_sigma<C, sigma> convert_CSR_to_SELL_C_sigma(const matrix_CSR& mtx_
 	res.col = (int*)std::align(C * sizeof(int), S * sizeof(int), temp_col_buf, col_buf_size);
 	memset(res.value, 0, S * sizeof(double));
 	memset(res.col, 0, S * sizeof(int));
-	for (int i = 0; i < mtx_CSR.N; i++) {
-		for (int j = mtx_CSR.row_id[i]; j < mtx_CSR.row_id[i + 1]; j++) {
-			int indx = res.cs[i / C] + (i - i / C * C) + (j - mtx_CSR.row_id[i]) * C;
-			res.value[indx] = mtx_CSR.value[j];
-			
-			// index of column in bits
-			// res.col[indx] = mtx_CSR.col[j];
-			res.col[indx] = mtx_CSR.col[j] * 8;
+	for (int i = 0; i < res.N; i++) {
+		int i_id = res.rows_perm[i];
+		if (i_id < mtx_CSR.N) {
+			for (int j = mtx_CSR.row_id[i_id]; j < mtx_CSR.row_id[i_id + 1]; j++) {
+				int indx = res.cs[i / C] + (i - i / C * C) + (j - mtx_CSR.row_id[i_id]) * C;
+				res.value[indx] = mtx_CSR.value[j];
+				// index of column in bits (for riscv vlux intrinsic)
+				res.col[indx] = mtx_CSR.col[j] * 8;
+			}
 		}
 	}
-	
 	return res;
 }
 
