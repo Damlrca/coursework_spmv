@@ -5,10 +5,12 @@
 #define STORAGE_FORMATS_HPP
 
 #include <utility>
+#include <vector>
 #include <algorithm>
 #include <numeric>
 #include <cstring>
 #include <memory>
+#include <iostream>
 
 // COO - Coordinate list sparse matrix format
 struct matrix_COO {
@@ -142,6 +144,7 @@ struct matrix_SELL_C_sigma {
 
 template<int C, int sigma>
 matrix_SELL_C_sigma<C, sigma> convert_CSR_to_SELL_C_sigma(const matrix_CSR& mtx_CSR, bool fill_null_elements = true) {
+	constexpr int vertical_block_size = 256;
 	matrix_SELL_C_sigma<C, sigma> res;
 	res.N = (mtx_CSR.N + C - 1) / C * C;
 	res.M = mtx_CSR.M;
@@ -164,6 +167,7 @@ matrix_SELL_C_sigma<C, sigma> convert_CSR_to_SELL_C_sigma(const matrix_CSR& mtx_
 	res.cl = new int[res.N / C];
 	memset(res.cs, 0, (res.N / C + 1) * sizeof(int));
 	memset(res.cl, 0, (res.N / C) * sizeof(int));
+	/*
 	for (int i = 0; i < res.N; i++) {
 		int i_id = res.rows_perm[i];
 		if (i_id < mtx_CSR.N) {
@@ -171,9 +175,56 @@ matrix_SELL_C_sigma<C, sigma> convert_CSR_to_SELL_C_sigma(const matrix_CSR& mtx_
 			res.cl[i / C] = std::max(res.cl[i / C], i_sz);
 		}
 	}
+	*/
+	//std::cout << "CHECKPOINT 1" << std::endl;
+	std::vector<std::vector<std::pair<int, double>>> TEMP(res.N);
+	for (int i = 0; i < res.N; i += C) {
+		std::vector<int> i_ids(C), i_sz(C);
+		for (int k = 0; k < C; k++) {
+			int ik_id = res.rows_perm[i + k];
+			if (ik_id < mtx_CSR.N) {
+				i_sz[k] = mtx_CSR.row_id[ik_id + 1] - mtx_CSR.row_id[ik_id];
+			}
+		}
+		while (true) {
+			int block = -1;
+			for (int k = 0; k < C; k++) {
+				if (i_ids[k] < i_sz[k]) {
+					int ik_id = res.rows_perm[i + k];
+					int j = mtx_CSR.row_id[ik_id] + i_ids[k];
+					if (block == -1 || mtx_CSR.col[j] / vertical_block_size < block) {
+						block = mtx_CSR.col[j] / vertical_block_size;
+					}
+				}
+			}
+			if (block == -1) {
+				break;
+			}
+			for (int k = 0; k < C; k++) {
+				if (i_ids[k] < i_sz[k]) {
+					int ik_id = res.rows_perm[i + k];
+					int j = mtx_CSR.row_id[ik_id] + i_ids[k];
+					if (mtx_CSR.col[j] / vertical_block_size == block) {
+						TEMP[i + k].push_back({mtx_CSR.col[j], mtx_CSR.value[j]});
+						i_ids[k]++;
+					}
+					else {
+						TEMP[i + k].push_back({-1,0});
+					}
+				}
+				else {
+					TEMP[i + k].push_back({-1,0});
+				}
+			}
+		}
+	}
+	//std::cout << "CHECKPOINT 2" << std::endl;
 	int S = 0;
 	for (int i = 0; i < res.N / C; i++) {
+		// res.cs[i] = S;
+		// S += res.cl[i] * C;
 		res.cs[i] = S;
+		res.cl[i] = TEMP[i * C].size();
 		S += res.cl[i] * C;
 	}
 	res.cs[res.N / C] = S;
@@ -192,17 +243,32 @@ matrix_SELL_C_sigma<C, sigma> convert_CSR_to_SELL_C_sigma(const matrix_CSR& mtx_
 	else {
 		memset(res.col, 0, S * sizeof(int));
 	}
+	//std::cout << "CHECKPOINT 3" << std::endl;
+	for (int i = 0; i < res.N; i++) {
+		for (int j = 0; j < TEMP[i].size(); j++) {
+			int indx = res.cs[i / C] + (i % C) + (j * C);
+			res.value[indx] = TEMP[i][j].second;
+			// index of column in bits (for riscv vlux intrinsic)
+			if (TEMP[i][j].first == -1)
+				res.col[indx] = -1;
+			else
+				res.col[indx] = TEMP[i][j].first * 8;
+		}
+	}
+	//std::cout << "CHECKPOINT 4" << std::endl;
+	/*
 	for (int i = 0; i < res.N; i++) {
 		int i_id = res.rows_perm[i];
 		if (i_id < mtx_CSR.N) {
 			for (int j = mtx_CSR.row_id[i_id]; j < mtx_CSR.row_id[i_id + 1]; j++) {
-				int indx = res.cs[i / C] + (i - i / C * C) + (j - mtx_CSR.row_id[i_id]) * C;
+				int indx = res.cs[i / C] + (i % C) + (j - mtx_CSR.row_id[i_id]) * C;
 				res.value[indx] = mtx_CSR.value[j];
 				// index of column in bits (for riscv vlux intrinsic)
 				res.col[indx] = mtx_CSR.col[j] * 8;
 			}
 		}
 	}
+	*/
 	if (fill_null_elements) {
 		for (int i = 0; i < res.N / C; i++) {
 			for (int j = res.cs[i]; j < res.cs[i + 1]; j += C) {
@@ -221,6 +287,7 @@ matrix_SELL_C_sigma<C, sigma> convert_CSR_to_SELL_C_sigma(const matrix_CSR& mtx_
 			}
 		}
 	}
+	//std::cout << "CHECKPOINT 5" << std::endl;
 	return res;
 }
 
