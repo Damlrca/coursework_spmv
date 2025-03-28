@@ -240,7 +240,8 @@ void print_mtx_stat(const matrix_CSR& mtx_CSR) {
 	print_mtx_stat_scs<32, 1>(mtx_CSR);
 }
 
-string ms_to_us_string(long long time) {
+// time in microseconds to string of time in ms
+string us_to_ms_string(long long time) {
 	string s = to_string(time);
 	if (s.size() < 4) {
 		s = string(4 - s.size(), '0') + s;
@@ -390,21 +391,21 @@ int main(int argc, char** argv) {
 	
 	print_mtx_stat(mtx_CSR);
 	
-	cout << "spmv_naive             : " << ms_to_us_string(spmv_naive_time) << "ms per iteration (minimum)" << endl;
-	cout << "spmv_albus_omp         : " << ms_to_us_string(spmv_albus_omp_time) << "ms per iteration (minimum)" << endl;
-	cout << "spmv_albus_omp_v       : " << ms_to_us_string(spmv_albus_omp_v_time) << "ms per iteration (minimum)" << endl;
-	cout << "spmv_scs__4_1          : " << ms_to_us_string(spmv_scs__4_1_time) << "ms per iteration (minimum)" << endl;
-	cout << "spmv_scs__8_1          : " << ms_to_us_string(spmv_scs__8_1_time) << "ms per iteration (minimum)" << endl;
-	cout << "spmv_scs_16_1          : " << ms_to_us_string(spmv_scs_16_1_time) << "ms per iteration (minimum)" << endl;
-	cout << "spmv_scs_32_1          : " << ms_to_us_string(spmv_scs_32_1_time) << "ms per iteration (minimum)" << endl;
-	cout << "spmv_scs__4_1_novec    : " << ms_to_us_string(spmv_scs__4_1_novec_time) << "ms per iteration (minimum)" << endl;
-	cout << "spmv_scs__8_1_novec    : " << ms_to_us_string(spmv_scs__8_1_novec_time) << "ms per iteration (minimum)" << endl;
-	cout << "spmv_scs_16_1_novec    : " << ms_to_us_string(spmv_scs_16_1_novec_time) << "ms per iteration (minimum)" << endl;
-	cout << "spmv_scs_32_1_novec    : " << ms_to_us_string(spmv_scs_32_1_novec_time) << "ms per iteration (minimum)" << endl;
-	cout << "spmv_scs__4_sorted     : " << ms_to_us_string(spmv_scs__4_sorted_time) << "ms per iteration (minimum)" << endl;
-	cout << "spmv_scs__8_sorted     : " << ms_to_us_string(spmv_scs__8_sorted_time) << "ms per iteration (minimum)" << endl;
-	cout << "spmv_scs_16_sorted     : " << ms_to_us_string(spmv_scs_16_sorted_time) << "ms per iteration (minimum)" << endl;
-	cout << "spmv_scs_32_sorted     : " << ms_to_us_string(spmv_scs_32_sorted_time) << "ms per iteration (minimum)" << endl;
+	cout << "spmv_naive             : " << us_to_ms_string(spmv_naive_time) << "ms per iteration (minimum)" << endl;
+	cout << "spmv_albus_omp         : " << us_to_ms_string(spmv_albus_omp_time) << "ms per iteration (minimum)" << endl;
+	cout << "spmv_albus_omp_v       : " << us_to_ms_string(spmv_albus_omp_v_time) << "ms per iteration (minimum)" << endl;
+	cout << "spmv_scs__4_1          : " << us_to_ms_string(spmv_scs__4_1_time) << "ms per iteration (minimum)" << endl;
+	cout << "spmv_scs__8_1          : " << us_to_ms_string(spmv_scs__8_1_time) << "ms per iteration (minimum)" << endl;
+	cout << "spmv_scs_16_1          : " << us_to_ms_string(spmv_scs_16_1_time) << "ms per iteration (minimum)" << endl;
+	cout << "spmv_scs_32_1          : " << us_to_ms_string(spmv_scs_32_1_time) << "ms per iteration (minimum)" << endl;
+	cout << "spmv_scs__4_1_novec    : " << us_to_ms_string(spmv_scs__4_1_novec_time) << "ms per iteration (minimum)" << endl;
+	cout << "spmv_scs__8_1_novec    : " << us_to_ms_string(spmv_scs__8_1_novec_time) << "ms per iteration (minimum)" << endl;
+	cout << "spmv_scs_16_1_novec    : " << us_to_ms_string(spmv_scs_16_1_novec_time) << "ms per iteration (minimum)" << endl;
+	cout << "spmv_scs_32_1_novec    : " << us_to_ms_string(spmv_scs_32_1_novec_time) << "ms per iteration (minimum)" << endl;
+	cout << "spmv_scs__4_sorted     : " << us_to_ms_string(spmv_scs__4_sorted_time) << "ms per iteration (minimum)" << endl;
+	cout << "spmv_scs__8_sorted     : " << us_to_ms_string(spmv_scs__8_sorted_time) << "ms per iteration (minimum)" << endl;
+	cout << "spmv_scs_16_sorted     : " << us_to_ms_string(spmv_scs_16_sorted_time) << "ms per iteration (minimum)" << endl;
+	cout << "spmv_scs_32_sorted     : " << us_to_ms_string(spmv_scs_32_sorted_time) << "ms per iteration (minimum)" << endl;
 	
 	vector<string> RES;
 	RES.push_back("data");
@@ -415,26 +416,26 @@ int main(int argc, char** argv) {
 	RES.push_back("ite");
 	RES.push_back(to_string(ite));
 	RES.push_back("naive");
-	RES.push_back(ms_to_us_string(spmv_naive_time));
+	RES.push_back(us_to_ms_string(spmv_naive_time));
 	RES.push_back("albus_omp");
-	RES.push_back(ms_to_us_string(spmv_albus_omp_time));
+	RES.push_back(us_to_ms_string(spmv_albus_omp_time));
 	RES.push_back("albus_omp_v");
-	RES.push_back(ms_to_us_string(spmv_albus_omp_v_time));
+	RES.push_back(us_to_ms_string(spmv_albus_omp_v_time));
 	RES.push_back("scs");
-	RES.push_back(ms_to_us_string(spmv_scs__4_1_time));
-	RES.push_back(ms_to_us_string(spmv_scs__8_1_time));
-	RES.push_back(ms_to_us_string(spmv_scs_16_1_time));
-	RES.push_back(ms_to_us_string(spmv_scs_32_1_time));
+	RES.push_back(us_to_ms_string(spmv_scs__4_1_time));
+	RES.push_back(us_to_ms_string(spmv_scs__8_1_time));
+	RES.push_back(us_to_ms_string(spmv_scs_16_1_time));
+	RES.push_back(us_to_ms_string(spmv_scs_32_1_time));
 	RES.push_back("scs_novec");
-	RES.push_back(ms_to_us_string(spmv_scs__4_1_novec_time));
-	RES.push_back(ms_to_us_string(spmv_scs__8_1_novec_time));
-	RES.push_back(ms_to_us_string(spmv_scs_16_1_novec_time));
-	RES.push_back(ms_to_us_string(spmv_scs_32_1_novec_time));
+	RES.push_back(us_to_ms_string(spmv_scs__4_1_novec_time));
+	RES.push_back(us_to_ms_string(spmv_scs__8_1_novec_time));
+	RES.push_back(us_to_ms_string(spmv_scs_16_1_novec_time));
+	RES.push_back(us_to_ms_string(spmv_scs_32_1_novec_time));
 	RES.push_back("scs_sorted");
-	RES.push_back(ms_to_us_string(spmv_scs__4_sorted_time));
-	RES.push_back(ms_to_us_string(spmv_scs__8_sorted_time));
-	RES.push_back(ms_to_us_string(spmv_scs_16_sorted_time));
-	RES.push_back(ms_to_us_string(spmv_scs_32_sorted_time));
+	RES.push_back(us_to_ms_string(spmv_scs__4_sorted_time));
+	RES.push_back(us_to_ms_string(spmv_scs__8_sorted_time));
+	RES.push_back(us_to_ms_string(spmv_scs_16_sorted_time));
+	RES.push_back(us_to_ms_string(spmv_scs_32_sorted_time));
 	for (auto& i : RES) {
 		cout << i << " ";
 	}
