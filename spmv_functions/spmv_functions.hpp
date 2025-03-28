@@ -15,8 +15,7 @@ vector_format alloc_vector_res(const matrix_CSR& mtx_CSR);
 template<int C, int sigma>
 vector_format alloc_vector_res(const matrix_SELL_C_sigma<C, sigma>& mtx) {
 	vector_format res;
-	res.N = mtx.N;
-	res.value = new double[res.N];
+	res.alloc(mtx.N, C);
 	std::memset(res.value, 0, sizeof(double) * res.N);
 	return res;
 }

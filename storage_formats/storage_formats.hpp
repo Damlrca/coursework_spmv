@@ -72,6 +72,7 @@ void transpose_CSR(matrix_CSR& mtx_CSR);
 struct vector_format {
 	int N = 0;
 	double* value = nullptr;
+	double* value_buf = nullptr; // buffer for value (used for align memory)
 	vector_format() {}
 	vector_format(vector_format&& vec) {
 		*this = std::move(vec);
@@ -79,10 +80,22 @@ struct vector_format {
 	vector_format& operator=(vector_format&& vec) {
 		std::swap(N, vec.N);
 		std::swap(value, vec.value);
+		std::swap(value_buf, vec.value_buf);
 		return *this;
 	}
 	~vector_format() {
-		delete[] value;
+		delete[] value_buf;
+	}
+	void alloc(int N, int C) {
+		if (value_buf != nullptr) {
+			delete[] value_buf;
+			value = nullptr;
+			value_buf = nullptr;
+		}
+		value_buf = new double[N + C];
+		std::size_t value_buf_size = (N + C) * sizeof(double);
+		void* temp_value_buf = (void*)value_buf;
+		value = (double*)std::align(C * sizeof(double), N * sizeof(double), temp_value_buf, value_buf_size);
 	}
 };
 

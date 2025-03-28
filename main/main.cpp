@@ -305,7 +305,7 @@ int main(int argc, char** argv) {
 	cout << "-------------------------" << endl;
 	
 	// INIT v
-	//set<int> rs = random_sample(M, M);
+	v.alloc(M, 32);
 	v.N = M;
 	v.value = new double[v.N];
 	//auto rs_i = rs.begin();
