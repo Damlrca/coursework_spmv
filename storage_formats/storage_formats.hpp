@@ -128,7 +128,7 @@ struct matrix_SELL_C_sigma {
 };
 
 template<int C, int sigma>
-matrix_SELL_C_sigma<C, sigma> convert_CSR_to_SELL_C_sigma(const matrix_CSR& mtx_CSR) {
+matrix_SELL_C_sigma<C, sigma> convert_CSR_to_SELL_C_sigma(const matrix_CSR& mtx_CSR, bool fill_null_elements = true) {
 	matrix_SELL_C_sigma<C, sigma> res;
 	res.N = (mtx_CSR.N + C - 1) / C * C;
 	res.M = mtx_CSR.M;
@@ -173,7 +173,12 @@ matrix_SELL_C_sigma<C, sigma> convert_CSR_to_SELL_C_sigma(const matrix_CSR& mtx_
 	void* temp_col_buf = (void*)res.col_buf;
 	res.col = (int*)std::align(C * sizeof(int), S * sizeof(int), temp_col_buf, col_buf_size);
 	memset(res.value, 0, S * sizeof(double));
-	memset(res.col, -1, S * sizeof(int));
+	if (fill_null_elements) {
+		memset(res.col, -1, S * sizeof(int));
+	}
+	else {
+		memset(res.col, 0, S * sizeof(int));
+	}
 	for (int i = 0; i < res.N; i++) {
 		int i_id = res.rows_perm[i];
 		if (i_id < mtx_CSR.N) {
@@ -185,18 +190,20 @@ matrix_SELL_C_sigma<C, sigma> convert_CSR_to_SELL_C_sigma(const matrix_CSR& mtx_
 			}
 		}
 	}
-	for (int i = 0; i < res.N / C; i++) {
-		for (int j = res.cs[i]; j < res.cs[i + 1]; j += C) {
-			int id = -1;
-			for (int k = 0; k < C; k++) {
-				if (res.col[j + k] != -1) {
-					id = res.col[j + k];
-					break;
+	if (fill_null_elements) {
+		for (int i = 0; i < res.N / C; i++) {
+			for (int j = res.cs[i]; j < res.cs[i + 1]; j += C) {
+				int id = -1;
+				for (int k = 0; k < C; k++) {
+					if (res.col[j + k] != -1) {
+						id = res.col[j + k];
+						break;
+					}
 				}
-			}
-			for (int k = 0; k < C; k++) {
-				if (res.col[j + k] == -1) {
-					res.col[j + k] = id;
+				for (int k = 0; k < C; k++) {
+					if (res.col[j + k] == -1) {
+						res.col[j + k] = id;
+					}
 				}
 			}
 		}
