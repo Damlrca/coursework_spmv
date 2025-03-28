@@ -52,10 +52,10 @@ double mx_diff_scs__4_1_novec = 0;
 double mx_diff_scs__8_1_novec = 0;
 double mx_diff_scs_16_1_novec = 0;
 double mx_diff_scs_32_1_novec = 0;
-double mx_diff_scs__4_1_sorted = 0;
-double mx_diff_scs__8_1_sorted = 0;
-double mx_diff_scs_16_1_sorted = 0;
-double mx_diff_scs_32_1_sorted = 0;
+double mx_diff_scs__4_sorted = 0;
+double mx_diff_scs__8_sorted = 0;
+double mx_diff_scs_16_sorted = 0;
+double mx_diff_scs_32_sorted = 0;
 vector_format naive_res;
 long long spmv_naive_time = numeric_limits<long long>::max();
 long long spmv_albus_omp_time = numeric_limits<long long>::max();
@@ -64,10 +64,10 @@ long long spmv_scs__4_1_time = numeric_limits<long long>::max();
 long long spmv_scs__8_1_time = numeric_limits<long long>::max();
 long long spmv_scs_16_1_time = numeric_limits<long long>::max();
 long long spmv_scs_32_1_time = numeric_limits<long long>::max();
-long long spmv_scs__4_1_sorted_time = numeric_limits<long long>::max();
-long long spmv_scs__8_1_sorted_time = numeric_limits<long long>::max();
-long long spmv_scs_16_1_sorted_time = numeric_limits<long long>::max();
-long long spmv_scs_32_1_sorted_time = numeric_limits<long long>::max();
+long long spmv_scs__4_sorted_time = numeric_limits<long long>::max();
+long long spmv_scs__8_sorted_time = numeric_limits<long long>::max();
+long long spmv_scs_16_sorted_time = numeric_limits<long long>::max();
+long long spmv_scs_32_sorted_time = numeric_limits<long long>::max();
 long long spmv_scs__4_1_novec_time = numeric_limits<long long>::max();
 long long spmv_scs__8_1_novec_time = numeric_limits<long long>::max();
 long long spmv_scs_16_1_novec_time = numeric_limits<long long>::max();
@@ -336,28 +336,28 @@ int main(int argc, char** argv) {
 	test_sell_c_sigma_novec<16, 1>(ite, threads_num, mtx_CSR, spmv_scs_16_1_novec_time, mx_diff_scs_16_1_novec);
 	test_sell_c_sigma_novec<32, 1>(ite, threads_num, mtx_CSR, spmv_scs_32_1_novec_time, mx_diff_scs_32_1_novec);
 	
-	test_sell_c_sigma< 4, SIGMA_SORTED>(ite, threads_num, mtx_CSR, spmv_scs__4_1_sorted_time, mx_diff_scs__4_1_sorted);
-	test_sell_c_sigma< 8, SIGMA_SORTED>(ite, threads_num, mtx_CSR, spmv_scs__8_1_sorted_time, mx_diff_scs__8_1_sorted);
-	test_sell_c_sigma<16, SIGMA_SORTED>(ite, threads_num, mtx_CSR, spmv_scs_16_1_sorted_time, mx_diff_scs_16_1_sorted);
-	test_sell_c_sigma<32, SIGMA_SORTED>(ite, threads_num, mtx_CSR, spmv_scs_32_1_sorted_time, mx_diff_scs_32_1_sorted);
+	test_sell_c_sigma< 4, SIGMA_SORTED>(ite, threads_num, mtx_CSR, spmv_scs__4_sorted_time, mx_diff_scs__4_sorted);
+	test_sell_c_sigma< 8, SIGMA_SORTED>(ite, threads_num, mtx_CSR, spmv_scs__8_sorted_time, mx_diff_scs__8_sorted);
+	test_sell_c_sigma<16, SIGMA_SORTED>(ite, threads_num, mtx_CSR, spmv_scs_16_sorted_time, mx_diff_scs_16_sorted);
+	test_sell_c_sigma<32, SIGMA_SORTED>(ite, threads_num, mtx_CSR, spmv_scs_32_sorted_time, mx_diff_scs_32_sorted);
 	
 	cout << "-------------------------" << endl;
 	
 	
-	cout << "mx_diff_albus_omp       : " << mx_diff_albus_omp << endl;
-	cout << "mx_diff_albus_omp_v     : " << mx_diff_albus_omp_v << endl;
-	cout << "mx_diff_scs__4_1        : " << mx_diff_scs__4_1 << endl;
-	cout << "mx_diff_scs__8_1        : " << mx_diff_scs__8_1 << endl;
-	cout << "mx_diff_scs_16_1        : " << mx_diff_scs_16_1 << endl;
-	cout << "mx_diff_scs_32_1        : " << mx_diff_scs_32_1 << endl;
-	cout << "mx_diff_scs__4_1_novec  : " << mx_diff_scs__4_1_novec << endl;
-	cout << "mx_diff_scs__8_1_novec  : " << mx_diff_scs__8_1_novec << endl;
-	cout << "mx_diff_scs_16_1_novec  : " << mx_diff_scs_16_1_novec << endl;
-	cout << "mx_diff_scs_32_1_novec  : " << mx_diff_scs_32_1_novec << endl;
-	cout << "mx_diff_scs__4_1_sorted : " << mx_diff_scs__4_1_sorted << endl;
-	cout << "mx_diff_scs__8_1_sorted : " << mx_diff_scs__8_1_sorted << endl;
-	cout << "mx_diff_scs_16_1_sorted : " << mx_diff_scs_16_1_sorted << endl;
-	cout << "mx_diff_scs_32_1_sorted : " << mx_diff_scs_32_1_sorted << endl;
+	cout << "mx_diff_albus_omp      : " << mx_diff_albus_omp << endl;
+	cout << "mx_diff_albus_omp_v    : " << mx_diff_albus_omp_v << endl;
+	cout << "mx_diff_scs__4_1       : " << mx_diff_scs__4_1 << endl;
+	cout << "mx_diff_scs__8_1       : " << mx_diff_scs__8_1 << endl;
+	cout << "mx_diff_scs_16_1       : " << mx_diff_scs_16_1 << endl;
+	cout << "mx_diff_scs_32_1       : " << mx_diff_scs_32_1 << endl;
+	cout << "mx_diff_scs__4_1_novec : " << mx_diff_scs__4_1_novec << endl;
+	cout << "mx_diff_scs__8_1_novec : " << mx_diff_scs__8_1_novec << endl;
+	cout << "mx_diff_scs_16_1_novec : " << mx_diff_scs_16_1_novec << endl;
+	cout << "mx_diff_scs_32_1_novec : " << mx_diff_scs_32_1_novec << endl;
+	cout << "mx_diff_scs__4_sorted  : " << mx_diff_scs__4_sorted << endl;
+	cout << "mx_diff_scs__8_sorted  : " << mx_diff_scs__8_sorted << endl;
+	cout << "mx_diff_scs_16_sorted  : " << mx_diff_scs_16_sorted << endl;
+	cout << "mx_diff_scs_32_sorted  : " << mx_diff_scs_32_sorted << endl;
 	
 	/*
 	int cnt = 0;
@@ -401,10 +401,10 @@ int main(int argc, char** argv) {
 	cout << "spmv_scs__8_1_novec    : " << ms_to_us_string(spmv_scs__8_1_novec_time) << "ms per iteration (minimum)" << endl;
 	cout << "spmv_scs_16_1_novec    : " << ms_to_us_string(spmv_scs_16_1_novec_time) << "ms per iteration (minimum)" << endl;
 	cout << "spmv_scs_32_1_novec    : " << ms_to_us_string(spmv_scs_32_1_novec_time) << "ms per iteration (minimum)" << endl;
-	cout << "spmv_scs__4_1_sorted   : " << ms_to_us_string(spmv_scs__4_1_sorted_time) << "ms per iteration (minimum)" << endl;
-	cout << "spmv_scs__8_1_sorted   : " << ms_to_us_string(spmv_scs__8_1_sorted_time) << "ms per iteration (minimum)" << endl;
-	cout << "spmv_scs_16_1_sorted   : " << ms_to_us_string(spmv_scs_16_1_sorted_time) << "ms per iteration (minimum)" << endl;
-	cout << "spmv_scs_32_1_sorted   : " << ms_to_us_string(spmv_scs_32_1_sorted_time) << "ms per iteration (minimum)" << endl;
+	cout << "spmv_scs__4_sorted     : " << ms_to_us_string(spmv_scs__4_sorted_time) << "ms per iteration (minimum)" << endl;
+	cout << "spmv_scs__8_sorted     : " << ms_to_us_string(spmv_scs__8_sorted_time) << "ms per iteration (minimum)" << endl;
+	cout << "spmv_scs_16_sorted     : " << ms_to_us_string(spmv_scs_16_sorted_time) << "ms per iteration (minimum)" << endl;
+	cout << "spmv_scs_32_sorted     : " << ms_to_us_string(spmv_scs_32_sorted_time) << "ms per iteration (minimum)" << endl;
 	
 	vector<string> RES;
 	RES.push_back("data");
@@ -431,10 +431,10 @@ int main(int argc, char** argv) {
 	RES.push_back(ms_to_us_string(spmv_scs_16_1_novec_time));
 	RES.push_back(ms_to_us_string(spmv_scs_32_1_novec_time));
 	RES.push_back("scs_sorted");
-	RES.push_back(ms_to_us_string(spmv_scs__4_1_sorted_time));
-	RES.push_back(ms_to_us_string(spmv_scs__8_1_sorted_time));
-	RES.push_back(ms_to_us_string(spmv_scs_16_1_sorted_time));
-	RES.push_back(ms_to_us_string(spmv_scs_32_1_sorted_time));
+	RES.push_back(ms_to_us_string(spmv_scs__4_sorted_time));
+	RES.push_back(ms_to_us_string(spmv_scs__8_sorted_time));
+	RES.push_back(ms_to_us_string(spmv_scs_16_sorted_time));
+	RES.push_back(ms_to_us_string(spmv_scs_32_sorted_time));
 	for (auto& i : RES) {
 		cout << i << " ";
 	}
