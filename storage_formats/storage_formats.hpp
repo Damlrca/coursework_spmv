@@ -173,7 +173,7 @@ matrix_SELL_C_sigma<C, sigma> convert_CSR_to_SELL_C_sigma(const matrix_CSR& mtx_
 	void* temp_col_buf = (void*)res.col_buf;
 	res.col = (int*)std::align(C * sizeof(int), S * sizeof(int), temp_col_buf, col_buf_size);
 	memset(res.value, 0, S * sizeof(double));
-	memset(res.col, 0, S * sizeof(int));
+	memset(res.col, -1, S * sizeof(int));
 	for (int i = 0; i < res.N; i++) {
 		int i_id = res.rows_perm[i];
 		if (i_id < mtx_CSR.N) {
@@ -182,6 +182,22 @@ matrix_SELL_C_sigma<C, sigma> convert_CSR_to_SELL_C_sigma(const matrix_CSR& mtx_
 				res.value[indx] = mtx_CSR.value[j];
 				// index of column in bits (for riscv vlux intrinsic)
 				res.col[indx] = mtx_CSR.col[j] * 8;
+			}
+		}
+	}
+	for (int i = 0; i < res.N / C; i++) {
+		for (int j = res.cs[i]; j < res.cs[i + 1]; j += C) {
+			int id = -1;
+			for (int k = 0; k < C; k++) {
+				if (res.col[j + k] != -1) {
+					id = res.col[j + k];
+					break;
+				}
+			}
+			for (int k = 0; k < C; k++) {
+				if (res.col[j + k] == -1) {
+					res.col[j + k] = id;
+				}
 			}
 		}
 	}
