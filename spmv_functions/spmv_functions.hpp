@@ -7,7 +7,7 @@
 #define SPMV_FUNCTIONS_HPP
 
 #include <riscv_vector.h>
-
+#include <iostream>
 #include "../storage_formats/storage_formats.hpp"
 
 vector_format alloc_vector_res(const matrix_CSR& mtx_CSR);
@@ -46,6 +46,7 @@ vector_format spmv_sell_c_sigma(const matrix_SELL_C_sigma<8, 1>& mtx, const vect
 
 template<int sigma>
 void spmv_sell_c_sigma_noalloc(const matrix_SELL_C_sigma<4, sigma>& mtx, const vector_format& vec, int threads_num, vector_format& res) {
+	std::cout << "START" << std::endl;
 #pragma omp parallel for num_threads(threads_num) schedule(dynamic)
 	for (int i = 0; i < mtx.N / 4; i++) {
 		vfloat64m1_t v_summ = __riscv_vfmv_v_f_f64m1(0.0, 4);
@@ -58,6 +59,7 @@ void spmv_sell_c_sigma_noalloc(const matrix_SELL_C_sigma<4, sigma>& mtx, const v
 		}
 		__riscv_vse64_v_f64m1(res.value + i * 4, v_summ, 4);
 	}
+	std::cout << "END" << std::endl;
 }
 
 template<int sigma>

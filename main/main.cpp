@@ -165,6 +165,8 @@ void test_sell_c_sigma(const int ite, const int threads_num, const matrix_CSR& m
 	cout << "mtx_SELL_C_sigma<" << C << ", " << sigma << ">: ";
 	matrix_SELL_C_sigma<C, sigma> mtx = convert_CSR_to_SELL_C_sigma<C, sigma>(mtx_CSR);
 	
+	cout << "CONVERTED" << endl;
+	
 	vector_format scs_res = alloc_vector_res(mtx);
 	// warm up
 	for (int it = 0; it < WARM_UP_CNT; it++) {
@@ -177,6 +179,8 @@ void test_sell_c_sigma(const int ite, const int threads_num, const matrix_CSR& m
 		MyTimer::SetEndTime();
 		res = min(res, MyTimer::GetDifferenceUs());
 	}
+
+	cout << "EASY" << endl;
 	
 	vector_format real_scs_res = alloc_vector_res(mtx);
 	for (int i = 0; i < mtx_CSR.N; i++) {
@@ -186,7 +190,9 @@ void test_sell_c_sigma(const int ite, const int threads_num, const matrix_CSR& m
 	cout << res << "us per iteration (minimum)" << endl;
 	
 	result_time = res;
+	cout << "LOL1" << endl;
 	result_diff = calc_diff(naive_res, real_scs_res);
+	cout << "LOL2" << endl;
 }
 
 template<int C, int sigma>
@@ -325,10 +331,13 @@ int main(int argc, char** argv) {
 	
 	test_naive(ite, threads_num, mtx_CSR);
 	
-	test_albus(ite, threads_num, mtx_CSR);
+	//test_albus(ite, threads_num, mtx_CSR);
 	
-	test_sell_c_sigma< 4, 1>(ite, threads_num, mtx_CSR, spmv_scs__4_1_time, mx_diff_scs__4_1);
+	//cout << "LOL 000" << endl;
+	//test_sell_c_sigma< 4, 1>(ite, threads_num, mtx_CSR, spmv_scs__4_1_time, mx_diff_scs__4_1);
+	cout << "LOL 001" << endl;
 	test_sell_c_sigma< 8, 1>(ite, threads_num, mtx_CSR, spmv_scs__8_1_time, mx_diff_scs__8_1);
+	cout << "LOL 002" << endl;
 	test_sell_c_sigma<16, 1>(ite, threads_num, mtx_CSR, spmv_scs_16_1_time, mx_diff_scs_16_1);
 	test_sell_c_sigma<32, 1>(ite, threads_num, mtx_CSR, spmv_scs_32_1_time, mx_diff_scs_32_1);
 	

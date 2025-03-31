@@ -11,6 +11,8 @@
 #include <cstring>
 #include <memory>
 #include <iostream>
+#include <cstdlib>
+#include <sys/sysinfo.h>
 
 // COO - Coordinate list sparse matrix format
 struct matrix_COO {
@@ -93,7 +95,9 @@ struct vector_format {
 			delete[] value_buf;
 			value = nullptr;
 			value_buf = nullptr;
+			this->N = 0;
 		}
+		this->N = N;
 		value_buf = new double[N + C];
 		std::size_t value_buf_size = (N + C) * sizeof(double);
 		void* temp_value_buf = (void*)value_buf;
@@ -144,6 +148,7 @@ struct matrix_SELL_C_sigma {
 
 template<int C, int sigma>
 matrix_SELL_C_sigma<C, sigma> convert_CSR_to_SELL_C_sigma(const matrix_CSR& mtx_CSR, bool fill_null_elements = true) {
+	std::cout << "CHECKPOINT 0" << std::endl;
 	constexpr int vertical_block_size = 256;
 	matrix_SELL_C_sigma<C, sigma> res;
 	res.N = (mtx_CSR.N + C - 1) / C * C;
@@ -163,37 +168,29 @@ matrix_SELL_C_sigma<C, sigma> convert_CSR_to_SELL_C_sigma(const matrix_CSR& mtx_
 			});
 		}
 	}
+	std::cout << "CHECKPOINT 1" << std::endl;
 	res.cs = new int[res.N / C + 1];
 	res.cl = new int[res.N / C];
 	memset(res.cs, 0, (res.N / C + 1) * sizeof(int));
 	memset(res.cl, 0, (res.N / C) * sizeof(int));
-	/*
-	for (int i = 0; i < res.N; i++) {
-		int i_id = res.rows_perm[i];
-		if (i_id < mtx_CSR.N) {
-			int i_sz = mtx_CSR.row_id[i_id + 1] - mtx_CSR.row_id[i_id];
-			res.cl[i / C] = std::max(res.cl[i / C], i_sz);
-		}
-	}
-	*/
-	//std::cout << "CHECKPOINT 1" << std::endl;
 	std::vector<std::vector<std::pair<int, double>>> TEMP(res.N);
 	for (int i = 0; i < res.N; i += C) {
-		std::vector<int> i_ids(C), i_sz(C);
+		std::vector<int> id(C, 0), sz(C, 0);
 		for (int k = 0; k < C; k++) {
 			int ik_id = res.rows_perm[i + k];
 			if (ik_id < mtx_CSR.N) {
-				i_sz[k] = mtx_CSR.row_id[ik_id + 1] - mtx_CSR.row_id[ik_id];
+				sz[k] = mtx_CSR.row_id[ik_id + 1] - mtx_CSR.row_id[ik_id];
 			}
 		}
 		while (true) {
 			int block = -1;
 			for (int k = 0; k < C; k++) {
-				if (i_ids[k] < i_sz[k]) {
+				if (id[k] < sz[k]) {
 					int ik_id = res.rows_perm[i + k];
-					int j = mtx_CSR.row_id[ik_id] + i_ids[k];
-					if (block == -1 || mtx_CSR.col[j] / vertical_block_size < block) {
-						block = mtx_CSR.col[j] / vertical_block_size;
+					int j = mtx_CSR.row_id[ik_id] + id[k];
+					int k_block = mtx_CSR.col[j] / vertical_block_size;
+					if (block == -1 || k_block < block) {
+						block = k_block;
 					}
 				}
 			}
@@ -201,12 +198,13 @@ matrix_SELL_C_sigma<C, sigma> convert_CSR_to_SELL_C_sigma(const matrix_CSR& mtx_
 				break;
 			}
 			for (int k = 0; k < C; k++) {
-				if (i_ids[k] < i_sz[k]) {
+				if (id[k] < sz[k]) {
 					int ik_id = res.rows_perm[i + k];
-					int j = mtx_CSR.row_id[ik_id] + i_ids[k];
-					if (mtx_CSR.col[j] / vertical_block_size == block) {
+					int j = mtx_CSR.row_id[ik_id] + id[k];
+					int k_block = mtx_CSR.col[j] / vertical_block_size;
+					if (k_block == block) {
 						TEMP[i + k].push_back({mtx_CSR.col[j], mtx_CSR.value[j]});
-						i_ids[k]++;
+						id[k]++;
 					}
 					else {
 						TEMP[i + k].push_back({-1,0});
@@ -218,16 +216,15 @@ matrix_SELL_C_sigma<C, sigma> convert_CSR_to_SELL_C_sigma(const matrix_CSR& mtx_
 			}
 		}
 	}
-	//std::cout << "CHECKPOINT 2" << std::endl;
+	std::cout << "CHECKPOINT 2" << std::endl;
 	int S = 0;
 	for (int i = 0; i < res.N / C; i++) {
-		// res.cs[i] = S;
-		// S += res.cl[i] * C;
 		res.cs[i] = S;
 		res.cl[i] = TEMP[i * C].size();
 		S += res.cl[i] * C;
 	}
 	res.cs[res.N / C] = S;
+	std::cout << "S = " << S << std::endl;
 	res.value_buf = new double[S + C];
 	std::size_t value_buf_size = (S + C) * sizeof(double);
 	void* temp_value_buf = (void*)res.value_buf;
@@ -236,14 +233,44 @@ matrix_SELL_C_sigma<C, sigma> convert_CSR_to_SELL_C_sigma(const matrix_CSR& mtx_
 	std::size_t col_buf_size = (S + C) * sizeof(int);
 	void* temp_col_buf = (void*)res.col_buf;
 	res.col = (int*)std::align(C * sizeof(int), S * sizeof(int), temp_col_buf, col_buf_size);
-	memset(res.value, 0, S * sizeof(double));
+	std::cout << "CHECKPOINT NAN" << std::endl;
+	std::cout << res.value_buf << std::endl;
+	std::cout << res.value << std::endl;
+	std::cout << res.col_buf << std::endl;
+	std::cout << res.col << std::endl;
+	std::cout << temp_value_buf << std::endl;
+	std::cout << temp_col_buf << std::endl;
+	std::cout << value_buf_size << std::endl;
+	std::cout << col_buf_size << std::endl;
+	for (int i = 0; i < S; i++) {
+		res.value[i] = 0;
+	}
+	//std::memset(res.value, 0, S * sizeof(double));
+	std::cout << "value ok" << std::endl;
+	struct sysinfo info;
+	sysinfo(&info);
+	std::cout << info.totalram << std::endl;
+	size_t sz = 3995611136 / 2;
+	std::cout << sz << std::endl;
 	if (fill_null_elements) {
-		memset(res.col, -1, S * sizeof(int));
+		res.col = (int*)std::malloc(sz);
+		std::cout << res.col << std::endl;
+		std::cout << S << std::endl;
+		std::cout << (&S) << std::endl;
+		std::cout << "col start" << std::endl;
+		for (int i = 0; i < sz / sizeof(int); i++) {
+			res.col[i] = 0;
+		}
+		std::cout << "col ok" << std::endl;
+		//std::memset(res.col, -1, S * sizeof(int));
 	}
 	else {
-		memset(res.col, 0, S * sizeof(int));
+		for (int i = 0; i < S; i++) {
+			res.col[i] = 0;
+		}
+		//std::memset(res.col, 0, S * sizeof(int));
 	}
-	//std::cout << "CHECKPOINT 3" << std::endl;
+	std::cout << "CHECKPOINT 3" << std::endl;
 	for (int i = 0; i < res.N; i++) {
 		for (int j = 0; j < TEMP[i].size(); j++) {
 			int indx = res.cs[i / C] + (i % C) + (j * C);
@@ -255,20 +282,6 @@ matrix_SELL_C_sigma<C, sigma> convert_CSR_to_SELL_C_sigma(const matrix_CSR& mtx_
 				res.col[indx] = TEMP[i][j].first * 8;
 		}
 	}
-	//std::cout << "CHECKPOINT 4" << std::endl;
-	/*
-	for (int i = 0; i < res.N; i++) {
-		int i_id = res.rows_perm[i];
-		if (i_id < mtx_CSR.N) {
-			for (int j = mtx_CSR.row_id[i_id]; j < mtx_CSR.row_id[i_id + 1]; j++) {
-				int indx = res.cs[i / C] + (i % C) + (j - mtx_CSR.row_id[i_id]) * C;
-				res.value[indx] = mtx_CSR.value[j];
-				// index of column in bits (for riscv vlux intrinsic)
-				res.col[indx] = mtx_CSR.col[j] * 8;
-			}
-		}
-	}
-	*/
 	if (fill_null_elements) {
 		for (int i = 0; i < res.N / C; i++) {
 			for (int j = res.cs[i]; j < res.cs[i + 1]; j += C) {
@@ -287,7 +300,15 @@ matrix_SELL_C_sigma<C, sigma> convert_CSR_to_SELL_C_sigma(const matrix_CSR& mtx_
 			}
 		}
 	}
-	//std::cout << "CHECKPOINT 5" << std::endl;
+	std::cout << "CHECKPOINT 5" << std::endl;
+	for (int i = 0; i < res.N / C; i++) {
+		for (int j = res.cs[i]; j < res.cs[i + 1]; j++) {
+			if (res.col[j] < 0) {
+				std::cout << "OH NO" << std::endl;
+				exit(0);
+			}
+		}
+	}
 	return res;
 }
 
