@@ -93,11 +93,13 @@ struct vector_format {
 			delete[] value_buf;
 			value = nullptr;
 			value_buf = nullptr;
+			this->N = 0;
 		}
 		value_buf = new double[N + C];
 		std::size_t value_buf_size = (N + C) * sizeof(double);
 		void* temp_value_buf = (void*)value_buf;
 		value = (double*)std::align(C * sizeof(double), N * sizeof(double), temp_value_buf, value_buf_size);
+		this->N = N;
 	}
 };
 
@@ -144,7 +146,7 @@ struct matrix_SELL_C_sigma {
 
 template<int C, int sigma>
 matrix_SELL_C_sigma<C, sigma> convert_CSR_to_SELL_C_sigma(const matrix_CSR& mtx_CSR, bool fill_null_elements = true) {
-	constexpr int vertical_block_size = 256;
+	constexpr int vertical_block_size = 1024;
 	matrix_SELL_C_sigma<C, sigma> res;
 	res.N = (mtx_CSR.N + C - 1) / C * C;
 	res.M = mtx_CSR.M;
@@ -167,16 +169,6 @@ matrix_SELL_C_sigma<C, sigma> convert_CSR_to_SELL_C_sigma(const matrix_CSR& mtx_
 	res.cl = new int[res.N / C];
 	memset(res.cs, 0, (res.N / C + 1) * sizeof(int));
 	memset(res.cl, 0, (res.N / C) * sizeof(int));
-	/*
-	for (int i = 0; i < res.N; i++) {
-		int i_id = res.rows_perm[i];
-		if (i_id < mtx_CSR.N) {
-			int i_sz = mtx_CSR.row_id[i_id + 1] - mtx_CSR.row_id[i_id];
-			res.cl[i / C] = std::max(res.cl[i / C], i_sz);
-		}
-	}
-	*/
-	//std::cout << "CHECKPOINT 1" << std::endl;
 	std::vector<std::vector<std::pair<int, double>>> TEMP(res.N);
 	for (int i = 0; i < res.N; i += C) {
 		std::vector<int> i_ids(C), i_sz(C);
@@ -218,11 +210,8 @@ matrix_SELL_C_sigma<C, sigma> convert_CSR_to_SELL_C_sigma(const matrix_CSR& mtx_
 			}
 		}
 	}
-	//std::cout << "CHECKPOINT 2" << std::endl;
 	int S = 0;
 	for (int i = 0; i < res.N / C; i++) {
-		// res.cs[i] = S;
-		// S += res.cl[i] * C;
 		res.cs[i] = S;
 		res.cl[i] = TEMP[i * C].size();
 		S += res.cl[i] * C;
@@ -243,7 +232,6 @@ matrix_SELL_C_sigma<C, sigma> convert_CSR_to_SELL_C_sigma(const matrix_CSR& mtx_
 	else {
 		memset(res.col, 0, S * sizeof(int));
 	}
-	//std::cout << "CHECKPOINT 3" << std::endl;
 	for (int i = 0; i < res.N; i++) {
 		for (int j = 0; j < TEMP[i].size(); j++) {
 			int indx = res.cs[i / C] + (i % C) + (j * C);
@@ -255,20 +243,6 @@ matrix_SELL_C_sigma<C, sigma> convert_CSR_to_SELL_C_sigma(const matrix_CSR& mtx_
 				res.col[indx] = TEMP[i][j].first * 8;
 		}
 	}
-	//std::cout << "CHECKPOINT 4" << std::endl;
-	/*
-	for (int i = 0; i < res.N; i++) {
-		int i_id = res.rows_perm[i];
-		if (i_id < mtx_CSR.N) {
-			for (int j = mtx_CSR.row_id[i_id]; j < mtx_CSR.row_id[i_id + 1]; j++) {
-				int indx = res.cs[i / C] + (i % C) + (j - mtx_CSR.row_id[i_id]) * C;
-				res.value[indx] = mtx_CSR.value[j];
-				// index of column in bits (for riscv vlux intrinsic)
-				res.col[indx] = mtx_CSR.col[j] * 8;
-			}
-		}
-	}
-	*/
 	if (fill_null_elements) {
 		for (int i = 0; i < res.N / C; i++) {
 			for (int j = res.cs[i]; j < res.cs[i + 1]; j += C) {
@@ -287,7 +261,6 @@ matrix_SELL_C_sigma<C, sigma> convert_CSR_to_SELL_C_sigma(const matrix_CSR& mtx_
 			}
 		}
 	}
-	//std::cout << "CHECKPOINT 5" << std::endl;
 	return res;
 }
 

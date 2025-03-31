@@ -1,6 +1,6 @@
 #!/bin/sh
 
-#SBATCH --time=180 --partition=k1
+#SBATCH --time=180 --partition=k1_8gb
 #SBATCH --output=out_test-%j.out
 
 echo start_run_main_exe_test

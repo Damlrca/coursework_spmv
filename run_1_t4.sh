@@ -1,6 +1,6 @@
 #!/bin/sh
 
-#SBATCH --time=400 --partition=k1
+#SBATCH --time=400 --partition=k1_8gb
 #SBATCH --output=out-%j-run_1_t4.out
 
 echo start_run_1_t4
