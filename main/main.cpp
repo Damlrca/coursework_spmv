@@ -9,6 +9,7 @@
 #include <cstdlib>
 #include <string>
 #include <algorithm>
+#include <cassert>
 
 #include "../storage_formats/storage_formats.hpp"
 #include "../mtx_input/mtx_input.hpp"
@@ -75,6 +76,8 @@ long long spmv_scs_32_1_novec_time = numeric_limits<long long>::max();
 
 // calc max difference of two vectors
 double calc_diff(const vector_format& a, const vector_format& b) {
+	assert(b.N >= a.N);
+	assert(a.N > 0);
 	double ans = 0;
 	for (int i = 0; i < a.N; i++) {
 		ans = max(ans, abs(a.value[i] - b.value[i]));
@@ -308,11 +311,10 @@ int main(int argc, char** argv) {
 	v.alloc(M, 32);
 	v.N = M;
 	v.value = new double[v.N];
-	//auto rs_i = rs.begin();
+	mt19937_64 gen(38);
+	uniform_real_distribution<> dis(0.0, 1.0);
 	for (int i = 0; i < v.N; i++) {
-		//v.value[i] = (double)*rs_i;
-		//++rs_i;
-		v.value[i] = 1;
+		v.value[i] = dis(gen);
 	}
 	cout << "vector v[" << v.N << "]: ";
 	for (int i = 0; i < 10; i++) {
@@ -360,31 +362,10 @@ int main(int argc, char** argv) {
 	cout << "mx_diff_scs_16_sorted  : " << mx_diff_scs_16_sorted << endl;
 	cout << "mx_diff_scs_32_sorted  : " << mx_diff_scs_32_sorted << endl;
 	
-	/*
-	int cnt = 0;
-	for (int i = 0; i < res_naive.N; i++) {
-		if (res_naive.value[i] != res_albus.value[i]) {
-			if (cnt < 10) {
-				cout << i << " ";
-				cout << res_naive.value[i] << " " << res_albus.value[i] << " ";
-				cout << abs(res_naive.value[i] - res_albus.value[i]) << endl;
-				// cout << "values in i-th row: ";
-				// for (int j = mtx_CSR.row_id[i]; j < mtx_CSR.row_id[i + 1]; j++) {
-				// 	cout << mtx_CSR.value[j] << " ";
-				// }
-				// cout << endl;
-			}
-			else if (cnt == 10) {
-				cout << "... ..." << endl;
-			}
-			cnt++;	
-		}
- 	}
-	cout << "cnt: " << cnt << endl;
-	*/
-	
 	cout << "-------------------------" << endl;
 	cout << "!!!!!!!!!!!!!!!!!!!!!!!!!" << endl;
+	
+	
 	cout << "threads_num : " << threads_num << endl;
 	cout << "ite         : " << ite << endl;
 	cout << "matrix      : " << filename << endl;

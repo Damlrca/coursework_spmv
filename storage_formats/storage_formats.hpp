@@ -91,11 +91,13 @@ struct vector_format {
 			delete[] value_buf;
 			value = nullptr;
 			value_buf = nullptr;
+			this->N = 0;
 		}
 		value_buf = new double[N + C];
 		std::size_t value_buf_size = (N + C) * sizeof(double);
 		void* temp_value_buf = (void*)value_buf;
 		value = (double*)std::align(C * sizeof(double), N * sizeof(double), temp_value_buf, value_buf_size);
+		this->N = N;
 	}
 };
 

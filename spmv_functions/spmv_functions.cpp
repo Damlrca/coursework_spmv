@@ -8,14 +8,6 @@
 
 #include "spmv_functions.hpp"
 
-vector_format alloc_vector_res(const matrix_CSR& mtx_CSR) {
-	vector_format res;
-	res.N = mtx_CSR.N;
-	res.value = new double[res.N];
-	std::memset(res.value, 0, sizeof(double) * res.N);
-	return res;
-}
-
 void spmv_naive_noalloc(const matrix_CSR& mtx_CSR, const vector_format& vec, int threads_num, vector_format& res) {
 #pragma omp parallel for num_threads(threads_num)
 	for (int i = 0; i < mtx_CSR.N; i++) {

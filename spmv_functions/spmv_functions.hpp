@@ -10,7 +10,12 @@
 
 #include "../storage_formats/storage_formats.hpp"
 
-vector_format alloc_vector_res(const matrix_CSR& mtx_CSR);
+inline vector_format alloc_vector_res(const matrix_CSR& mtx_CSR) {
+	vector_format res;
+	res.alloc(mtx_CSR.N, 32);
+	std::memset(res.value, 0, sizeof(double) * res.N);
+	return res;
+}
 
 template<int C, int sigma>
 vector_format alloc_vector_res(const matrix_SELL_C_sigma<C, sigma>& mtx) {
