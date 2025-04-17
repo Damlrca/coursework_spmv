@@ -15,7 +15,7 @@ date
 
 # ./main_exe ../test_mtx_3/RM07R/RM07R.mtx 1 10
 
-./main_exe ../test_mtx_3/mac_econ_fwd500/mac_econ_fwd500.mtx 8 10
+./main2_exe ../test_mtx_3/mac_econ_fwd500/mac_econ_fwd500.mtx 8 10
 
 # ./main_exe ../test_mtx_3/kkt_power.mtx 8 10
 

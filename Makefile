@@ -9,6 +9,12 @@ CC = riscv64-unknown-linux-gnu-gcc
 CXX = riscv64-unknown-linux-gnu-g++
 CFLAGS = -march=rv64gcv -fopenmp -O2
 
+main2_exe: main2.o mtx_input.o mmio.o spmv_functions.o storage_formats.o
+	$(CXX) $(CFLAGS) $^ -o main2_exe
+
+main2.o: main/main2.cpp
+	$(CXX) -c $(CFLAGS) main/main2.cpp -o $@
+
 main_exe: main.o mtx_input.o mmio.o spmv_functions.o storage_formats.o
 	$(CXX) $(CFLAGS) $^ -o main_exe
 
