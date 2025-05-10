@@ -1,7 +1,7 @@
 # Copyright (C) 2024 Sadikov Damir
 # github.com/Damlrca/coursework_spmv
 
-all: main_exe
+all: main_exe main2_exe
 
 # module load Xuantie-900-gcc-linux-5.10.4-glibc-x86_64-V2.8.1
 # module load gcc-riscv64-14.2.0
