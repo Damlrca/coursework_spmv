@@ -122,23 +122,40 @@ void test_albus(const int ite, const int threads_num, const matrix_CSR& mtx_CSR)
 	results.push_back("albus");
 	results.push_back(to_string(mtx_CSR.row_id[mtx_CSR.N]));
 	results.push_back(us_to_ms_string(res_omp));
+}
+
+using albus_t = decltype(spmv_albus_omp_v_noalloc_m1)*;
+
+void test_albus_v_mX(const int ite, const int threads_num, const matrix_CSR& mtx_CSR, string name,
+                     albus_t albus_v_mX) {
+	int start[100];
+	int block_start[100];
+	preproc_albus_balance(mtx_CSR, start, block_start, threads_num);
+	cout << "-------------------------" << endl;
+	cout << "albus precalc" << endl;
+	cout << "      start: ";
+	for (int i = 0; i <= threads_num; i++) cout << start[i] << " "; cout << "\n";
+	cout << "block_start: ";
+	for (int i = 0; i <= threads_num; i++) cout << block_start[i] << " "; cout << "\n";
+	cout << "-------------------------" << endl;
 	
-	cout << "spmv_albus_omp_v: ";
+	// cout << "spmv_albus_omp_v: ";
+	cout << name << ": ";
 	vector_format albus_omp_v_res = alloc_vector_res(mtx_CSR);
 	// warm up
 	for (int it = 0; it < WARM_UP_CNT; it++) {
-		spmv_albus_omp_v_noalloc(mtx_CSR, v, start, block_start, threads_num, albus_omp_v_res);
+		albus_v_mX(mtx_CSR, v, start, block_start, threads_num, albus_omp_v_res);
 	}
 	long long res_omp_v = numeric_limits<long long>::max();
 	for (int it = 0; it < ite; it++) {
 		MyTimer::SetStartTime();
-		spmv_albus_omp_v_noalloc(mtx_CSR, v, start, block_start, threads_num, albus_omp_v_res);
+		albus_v_mX(mtx_CSR, v, start, block_start, threads_num, albus_omp_v_res);
 		MyTimer::SetEndTime();
 		res_omp_v = min(res_omp_v, MyTimer::GetDifferenceUs());
 	}
 	cout << res_omp_v << "us per iteration (minimum); diff = " << calc_diff(naive_res, albus_omp_v_res) << endl;
 	
-	results.push_back("albus_v");
+	results.push_back(name);
 	results.push_back(to_string(mtx_CSR.row_id[mtx_CSR.N]));
 	results.push_back(us_to_ms_string(res_omp_v));
 }
@@ -325,39 +342,43 @@ int main(int argc, char** argv) {
 	test_naive(ite, threads_num, mtx_CSR);
 	
 	test_albus(ite, threads_num, mtx_CSR);
+	test_albus_v_mX(ite, threads_num, mtx_CSR, "albus_v_m1", spmv_albus_omp_v_noalloc_m1);
+	test_albus_v_mX(ite, threads_num, mtx_CSR, "albus_v_m2", spmv_albus_omp_v_noalloc_m2);
+	test_albus_v_mX(ite, threads_num, mtx_CSR, "albus_v_m4", spmv_albus_omp_v_noalloc_m4);
+	test_albus_v_mX(ite, threads_num, mtx_CSR, "albus_v_m8", spmv_albus_omp_v_noalloc_m8);
 	
 	test_sell_c_sigma< 4, 1>(ite, threads_num, mtx_CSR, "scs_4_1");
-	test_sell_c_sigmau< 4, 1>(ite, threads_num, mtx_CSR, "scs_4_1_u4");
+	// test_sell_c_sigmau< 4, 1>(ite, threads_num, mtx_CSR, "scs_4_1_u4");
 	test_sell_c_sigma< 8, 1>(ite, threads_num, mtx_CSR, "scs_8_1");
-	test_sell_c_sigmau< 8, 1>(ite, threads_num, mtx_CSR, "scs_8_1_u4");
+	// test_sell_c_sigmau< 8, 1>(ite, threads_num, mtx_CSR, "scs_8_1_u4");
 	test_sell_c_sigma<16, 1>(ite, threads_num, mtx_CSR, "scs16_1");
-	test_sell_c_sigmau<16, 1>(ite, threads_num, mtx_CSR, "scs16_1_u4");
+	// test_sell_c_sigmau<16, 1>(ite, threads_num, mtx_CSR, "scs16_1_u4");
 	test_sell_c_sigma<32, 1>(ite, threads_num, mtx_CSR, "scs32_1");
-	test_sell_c_sigmau<32, 1>(ite, threads_num, mtx_CSR, "scs32_1_u4");
+	// test_sell_c_sigmau<32, 1>(ite, threads_num, mtx_CSR, "scs32_1_u4");
 	test_sell_c_sigma< 4, 2>(ite, threads_num, mtx_CSR, "scs_4_2");
-	test_sell_c_sigmau< 4, 2>(ite, threads_num, mtx_CSR, "scs_4_2_u4");
+	// test_sell_c_sigmau< 4, 2>(ite, threads_num, mtx_CSR, "scs_4_2_u4");
 	test_sell_c_sigma< 8, 2>(ite, threads_num, mtx_CSR, "scs_8_2");
-	test_sell_c_sigmau< 8, 2>(ite, threads_num, mtx_CSR, "scs_8_2_u4");
+	// test_sell_c_sigmau< 8, 2>(ite, threads_num, mtx_CSR, "scs_8_2_u4");
 	test_sell_c_sigma<16, 2>(ite, threads_num, mtx_CSR, "scs16_2");
-	test_sell_c_sigmau<16, 2>(ite, threads_num, mtx_CSR, "scs16_2_u4");
+	// test_sell_c_sigmau<16, 2>(ite, threads_num, mtx_CSR, "scs16_2_u4");
 	test_sell_c_sigma<32, 2>(ite, threads_num, mtx_CSR, "scs32_2");
-	test_sell_c_sigmau<32, 2>(ite, threads_num, mtx_CSR, "scs32_2_u4");
+	// test_sell_c_sigmau<32, 2>(ite, threads_num, mtx_CSR, "scs32_2_u4");
 	test_sell_c_sigma< 4, 4>(ite, threads_num, mtx_CSR, "scs_4_4");
-	test_sell_c_sigmau< 4, 4>(ite, threads_num, mtx_CSR, "scs_4_4_u4");
+	// test_sell_c_sigmau< 4, 4>(ite, threads_num, mtx_CSR, "scs_4_4_u4");
 	test_sell_c_sigma< 8, 4>(ite, threads_num, mtx_CSR, "scs_8_4");
-	test_sell_c_sigmau< 8, 4>(ite, threads_num, mtx_CSR, "scs_8_4_u4");
+	// test_sell_c_sigmau< 8, 4>(ite, threads_num, mtx_CSR, "scs_8_4_u4");
 	test_sell_c_sigma<16, 4>(ite, threads_num, mtx_CSR, "scs16_4");
-	test_sell_c_sigmau<16, 4>(ite, threads_num, mtx_CSR, "scs16_4_u4");
+	// test_sell_c_sigmau<16, 4>(ite, threads_num, mtx_CSR, "scs16_4_u4");
 	test_sell_c_sigma<32, 4>(ite, threads_num, mtx_CSR, "scs32_4");
-	test_sell_c_sigmau<32, 4>(ite, threads_num, mtx_CSR, "scs32_4_u4");
+	// test_sell_c_sigmau<32, 4>(ite, threads_num, mtx_CSR, "scs32_4_u4");
 	test_sell_c_sigma< 4, 8>(ite, threads_num, mtx_CSR, "scs_4_8");
-	test_sell_c_sigmau< 4, 8>(ite, threads_num, mtx_CSR, "scs_4_8_u4");
+	// test_sell_c_sigmau< 4, 8>(ite, threads_num, mtx_CSR, "scs_4_8_u4");
 	test_sell_c_sigma< 8, 8>(ite, threads_num, mtx_CSR, "scs_8_8");
-	test_sell_c_sigmau< 8, 8>(ite, threads_num, mtx_CSR, "scs_8_8_u4");
+	// test_sell_c_sigmau< 8, 8>(ite, threads_num, mtx_CSR, "scs_8_8_u4");
 	test_sell_c_sigma<16, 8>(ite, threads_num, mtx_CSR, "scs16_8");
-	test_sell_c_sigmau<16, 8>(ite, threads_num, mtx_CSR, "scs16_8_u4");
+	// test_sell_c_sigmau<16, 8>(ite, threads_num, mtx_CSR, "scs16_8_u4");
 	test_sell_c_sigma<32, 8>(ite, threads_num, mtx_CSR, "scs32_8");
-	test_sell_c_sigmau<32, 8>(ite, threads_num, mtx_CSR, "scs32_8_u4");
+	// test_sell_c_sigmau<32, 8>(ite, threads_num, mtx_CSR, "scs32_8_u4");
 	
 	test_sell_c_sigma_novec< 4, 1>(ite, threads_num, mtx_CSR, "scs_4_1_nv");
 	test_sell_c_sigma_novec< 8, 1>(ite, threads_num, mtx_CSR, "scs_8_1_nv");
@@ -365,13 +386,13 @@ int main(int argc, char** argv) {
 	test_sell_c_sigma_novec<32, 1>(ite, threads_num, mtx_CSR, "scs32_1_nv");
 	
 	test_sell_c_sigma< 4, SIGMA_SORTED>(ite, threads_num, mtx_CSR, "scs_4_S");
-	test_sell_c_sigmau< 4, SIGMA_SORTED>(ite, threads_num, mtx_CSR, "scs_4_S_u4");
+	// test_sell_c_sigmau< 4, SIGMA_SORTED>(ite, threads_num, mtx_CSR, "scs_4_S_u4");
 	test_sell_c_sigma< 8, SIGMA_SORTED>(ite, threads_num, mtx_CSR, "scs_8_S");
-	test_sell_c_sigmau< 8, SIGMA_SORTED>(ite, threads_num, mtx_CSR, "scs_8_S_u4");
+	// test_sell_c_sigmau< 8, SIGMA_SORTED>(ite, threads_num, mtx_CSR, "scs_8_S_u4");
 	test_sell_c_sigma<16, SIGMA_SORTED>(ite, threads_num, mtx_CSR, "scs16_S");
-	test_sell_c_sigmau<16, SIGMA_SORTED>(ite, threads_num, mtx_CSR, "scs16_S_u4");
+	// test_sell_c_sigmau<16, SIGMA_SORTED>(ite, threads_num, mtx_CSR, "scs16_S_u4");
 	test_sell_c_sigma<32, SIGMA_SORTED>(ite, threads_num, mtx_CSR, "scs32_S");
-	test_sell_c_sigmau<32, SIGMA_SORTED>(ite, threads_num, mtx_CSR, "scs32_S_u4");
+	// test_sell_c_sigmau<32, SIGMA_SORTED>(ite, threads_num, mtx_CSR, "scs32_S_u4");
 	
 	cout << "-------------------------" << endl;
 	

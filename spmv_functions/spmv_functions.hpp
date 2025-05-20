@@ -44,6 +44,11 @@ void spmv_albus_omp_noalloc(const matrix_CSR& mtx_CSR, const vector_format& vec,
 vector_format spmv_albus_omp_v(const matrix_CSR& mtx_CSR, const vector_format& vec, int* start, int* block_start, int threads_num);
 void spmv_albus_omp_v_noalloc(const matrix_CSR& mtx_CSR, const vector_format& vec, int* start, int* block_start, int threads_num, vector_format& res);
 
+void spmv_albus_omp_v_noalloc_m1(const matrix_CSR& mtx_CSR, const vector_format& vec, int* start, int* block_start, int threads_num, vector_format& res);
+void spmv_albus_omp_v_noalloc_m2(const matrix_CSR& mtx_CSR, const vector_format& vec, int* start, int* block_start, int threads_num, vector_format& res);
+void spmv_albus_omp_v_noalloc_m4(const matrix_CSR& mtx_CSR, const vector_format& vec, int* start, int* block_start, int threads_num, vector_format& res);
+void spmv_albus_omp_v_noalloc_m8(const matrix_CSR& mtx_CSR, const vector_format& vec, int* start, int* block_start, int threads_num, vector_format& res);
+
 // SELL_C_SIGMA
 
 vector_format spmv_sell_c_sigma(const matrix_SELL_C_sigma<4, 1>& mtx, const vector_format& vec, int threads_num);
