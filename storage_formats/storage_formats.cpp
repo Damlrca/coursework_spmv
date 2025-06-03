@@ -1,4 +1,4 @@
-// Copyright (C) 2024 Sadikov Damir
+// Copyright (C) 2025 Sadikov Damir
 // github.com/Damlrca/coursework_spmv
 
 #include "storage_formats.hpp"

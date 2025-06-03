@@ -1,4 +1,4 @@
-// Copyright (C) 2024 Sadikov Damir
+// Copyright (C) 2025 Sadikov Damir
 // github.com/Damlrca/coursework_spmv
 
 #ifndef STORAGE_FORMATS_HPP
@@ -6,9 +6,12 @@
 
 #include <utility>
 #include <algorithm>
+#include <numeric>
 #include <cstring>
 #include <memory>
+#include <vector>
 
+// COO - Coordinate list sparse matrix format
 struct matrix_COO {
 	int N = 0;
 	int M = 0;
@@ -36,6 +39,7 @@ struct matrix_COO {
 	}
 };
 
+// CSR - Compressed sparse row sparse matrix format (CRS - Compressed row storage)
 struct matrix_CSR {
 	int N = 0;
 	int M = 0;
@@ -61,9 +65,15 @@ struct matrix_CSR {
 	}
 };
 
+matrix_CSR convert_COO_to_CSR(const matrix_COO& mtx_COO);
+
+void transpose_CSR(matrix_CSR& mtx_CSR);
+
+// struct for storing a vector
 struct vector_format {
 	int N = 0;
 	double* value = nullptr;
+	double* value_buf = nullptr; // buffer for value (used for align memory)
 	vector_format() {}
 	vector_format(vector_format&& vec) {
 		*this = std::move(vec);
@@ -71,27 +81,43 @@ struct vector_format {
 	vector_format& operator=(vector_format&& vec) {
 		std::swap(N, vec.N);
 		std::swap(value, vec.value);
+		std::swap(value_buf, vec.value_buf);
 		return *this;
 	}
 	~vector_format() {
-		delete[] value;
+		delete[] value_buf;
+	}
+	void alloc(int N, int C) {
+		if (value_buf != nullptr) {
+			delete[] value_buf;
+			value = nullptr;
+			value_buf = nullptr;
+			this->N = 0;
+		}
+		value_buf = new double[N + C];
+		std::size_t value_buf_size = (N + C) * sizeof(double);
+		void* temp_value_buf = (void*)value_buf;
+		value = (double*)std::align(C * sizeof(double), N * sizeof(double), temp_value_buf, value_buf_size);
+		this->N = N;
 	}
 };
 
-matrix_CSR convert_COO_to_CSR(const matrix_COO& mtx_COO);
-
-void transpose_CSR(matrix_CSR& mtx_CSR);
-
+// SELL_C_sigma sparse matrix format
+// C - number of rows in block
+// sigma - number of consecutive blocks in which rows are sorted 
+//         in descending order of the number of non-zero elements
+// if sigma is 1 then sorting is not applied
 template<int C, int sigma>
 struct matrix_SELL_C_sigma {
 	int N = 0;
 	int M = 0;
 	double* value = nullptr;
 	int* col = nullptr;
-	double* value_buf = nullptr;
-	int* col_buf = nullptr;
+	double* value_buf = nullptr; // buffer for value (used for align memory)
+	int* col_buf = nullptr; // buffer for col (used for align memory)
 	int* cs = nullptr;
 	int* cl = nullptr;
+	int* rows_perm = nullptr; // permutation of rows
 	matrix_SELL_C_sigma() {}
 	matrix_SELL_C_sigma(matrix_SELL_C_sigma&& mtx) {
 		*this = std::move(mtx);
@@ -105,6 +131,7 @@ struct matrix_SELL_C_sigma {
 		std::swap(col_buf, mtx.col_buf);
 		std::swap(cs, mtx.cs);
 		std::swap(cl, mtx.cl);
+		std::swap(rows_perm, mtx.rows_perm);
 		return *this;
 	}
 	~matrix_SELL_C_sigma() {
@@ -112,25 +139,83 @@ struct matrix_SELL_C_sigma {
 		delete[] col_buf;
 		delete[] cs;
 		delete[] cl;
+		delete[] rows_perm;
 	}
 };
 
 template<int C, int sigma>
-matrix_SELL_C_sigma<C, sigma> convert_CSR_to_SELL_C_sigma(const matrix_CSR& mtx_CSR) {
+matrix_SELL_C_sigma<C, sigma> convert_CSR_to_SELL_C_sigma(const matrix_CSR& mtx_CSR, int vertical_block_size = 9'999'999) {
 	matrix_SELL_C_sigma<C, sigma> res;
 	res.N = (mtx_CSR.N + C - 1) / C * C;
 	res.M = mtx_CSR.M;
+	res.rows_perm = new int[res.N];
+	std::iota(res.rows_perm, res.rows_perm + res.N, 0);
+	if (sigma != 1) {
+		for (int i = 0; i < res.N; i += C * sigma) {
+			std::sort(res.rows_perm + i, res.rows_perm + std::min(res.N, i + C * sigma), [&](int a, int b)->bool{
+				int sz_a = 0;
+				int sz_b = 0;
+				if (a < mtx_CSR.N) sz_a = mtx_CSR.row_id[a + 1] - mtx_CSR.row_id[a];
+				if (b < mtx_CSR.N) sz_b = mtx_CSR.row_id[b + 1] - mtx_CSR.row_id[b];
+				if (sz_a != sz_b)
+					return sz_a > sz_b;
+				return a < b;
+			});
+		}
+	}
 	res.cs = new int[res.N / C + 1];
 	res.cl = new int[res.N / C];
 	memset(res.cs, 0, (res.N / C + 1) * sizeof(int));
 	memset(res.cl, 0, (res.N / C) * sizeof(int));
-	for (int i = 0; i < mtx_CSR.N; i++) {
-		int i_sz = mtx_CSR.row_id[i + 1] - mtx_CSR.row_id[i];
-		res.cl[i / C] = std::max(res.cl[i / C], i_sz);
+	
+	std::vector<std::vector<std::pair<int, double>>> TEMP(res.N);
+	for (int i = 0; i < res.N; i += C) {
+		std::vector<int> i_ids(C), i_sz(C);
+		for (int k = 0; k < C; k++) {
+			int ik_id = res.rows_perm[i + k];
+			if (ik_id < mtx_CSR.N) {
+				i_sz[k] = mtx_CSR.row_id[ik_id + 1] - mtx_CSR.row_id[ik_id];
+			}
+		}
+		while (true) {
+			int block = -1;
+			for (int k = 0; k < C; k++) {
+				if (i_ids[k] < i_sz[k]) {
+					int ik_id = res.rows_perm[i + k];
+					int j = mtx_CSR.row_id[ik_id] + i_ids[k];
+					int k_block = mtx_CSR.col[j] / vertical_block_size;
+					if (block == -1 || k_block < block) {
+						block = k_block;
+					}
+				}
+			}
+			if (block == -1) {
+				break;
+			}
+			for (int k = 0; k < C; k++) {
+				if (i_ids[k] < i_sz[k]) {
+					int ik_id = res.rows_perm[i + k];
+					int j = mtx_CSR.row_id[ik_id] + i_ids[k];
+					int k_block = mtx_CSR.col[j] / vertical_block_size;
+					if (k_block == block) {
+						TEMP[i + k].push_back({mtx_CSR.col[j], mtx_CSR.value[j]});
+						i_ids[k]++;
+					}
+					else {
+						TEMP[i + k].push_back({-1, 0});
+					}
+				}
+				else {
+					TEMP[i + k].push_back({-1, 0});
+				}
+			}
+		}
 	}
+	
 	int S = 0;
 	for (int i = 0; i < res.N / C; i++) {
 		res.cs[i] = S;
+		res.cl[i] = TEMP[i * C].size();
 		S += res.cl[i] * C;
 	}
 	res.cs[res.N / C] = S;
@@ -143,18 +228,33 @@ matrix_SELL_C_sigma<C, sigma> convert_CSR_to_SELL_C_sigma(const matrix_CSR& mtx_
 	void* temp_col_buf = (void*)res.col_buf;
 	res.col = (int*)std::align(C * sizeof(int), S * sizeof(int), temp_col_buf, col_buf_size);
 	memset(res.value, 0, S * sizeof(double));
-	memset(res.col, 0, S * sizeof(int));
-	for (int i = 0; i < mtx_CSR.N; i++) {
-		for (int j = mtx_CSR.row_id[i]; j < mtx_CSR.row_id[i + 1]; j++) {
-			int indx = res.cs[i / C] + (i - i / C * C) + (j - mtx_CSR.row_id[i]) * C;
-			res.value[indx] = mtx_CSR.value[j];
-			
-			// index of column in bits
-			// res.col[indx] = mtx_CSR.col[j];
-			res.col[indx] = mtx_CSR.col[j] * 8;
+	for (int i = 0; i < res.N; i++) {
+		for (int j = 0; j < TEMP[i].size(); j++) {
+			int indx = res.cs[i / C] + (i % C) + (j * C);
+			res.value[indx] = TEMP[i][j].second;
+			// index of column in bits (for riscv vlux intrinsic)
+			if (TEMP[i][j].first == -1)
+				res.col[indx] = -1;
+			else
+				res.col[indx] = TEMP[i][j].first * 8;
 		}
 	}
-	
+	for (int i = 0; i < res.N / C; i++) {
+		for (int j = res.cs[i]; j < res.cs[i + 1]; j += C) {
+			int id = -1;
+			for (int k = 0; k < C; k++) {
+				if (res.col[j + k] != -1) {
+					id = res.col[j + k];
+					break;
+				}
+			}
+			for (int k = 0; k < C; k++) {
+				if (res.col[j + k] == -1) {
+					res.col[j + k] = id;
+				}
+			}
+		}
+	}
 	return res;
 }
 
