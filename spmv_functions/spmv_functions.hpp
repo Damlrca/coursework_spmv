@@ -10,52 +10,90 @@
 
 #include "../storage_formats/storage_formats.hpp"
 
-inline vector_format alloc_vector_res(const matrix_CSR& mtx_CSR) {
-	vector_format res;
+template <typename T>
+vector_format<T> alloc_vector_res(const matrix_CSR<T>& mtx_CSR) {
+	vector_format<T> res;
 	res.alloc(mtx_CSR.N, 32);
-	std::memset(res.value, 0, sizeof(double) * res.N);
+	std::memset(res.value, 0, sizeof(T) * res.N);
 	return res;
 }
 
-template<int C, int sigma>
-vector_format alloc_vector_res(const matrix_SELL_C_sigma<C, sigma>& mtx) {
-	vector_format res;
+template<int C, int sigma, typename T>
+vector_format<T> alloc_vector_res(const matrix_SELL_C_sigma<C, sigma, T>& mtx) {
+	vector_format<T> res;
 	res.alloc(mtx.N, C);
-	std::memset(res.value, 0, sizeof(double) * res.N);
+	std::memset(res.value, 0, sizeof(T) * res.N);
 	return res;
 }
 
 // NAIVE
 
-vector_format spmv_naive(const matrix_CSR& mtx_CSR, const vector_format& vec, int threads_num);
-void spmv_naive_noalloc(const matrix_CSR& mtx_CSR, const vector_format& vec, int threads_num, vector_format& res);
+//vector_format spmv_naive(const matrix_CSR& mtx_CSR, const vector_format& vec, int threads_num);
+template <typename T>
+void spmv_naive_noalloc(const matrix_CSR<T>& mtx_CSR, const vector_format<T>& vec, int threads_num, vector_format<T>& res) {
+#pragma omp parallel for num_threads(threads_num)
+	for (int i = 0; i < mtx_CSR.N; i++) {
+		double temp = 0;
+		for (int j = mtx_CSR.row_id[i]; j < mtx_CSR.row_id[i + 1]; j++) {
+			temp += mtx_CSR.value[j] * vec.value[mtx_CSR.col[j]];
+		}
+		res.value[i] = temp;
+	}
+}
 
-// ALBUS
+// ALBUS PREPROC
 
-void preproc_albus_balance(const matrix_CSR& mtx_CSR, int* start, int* block_start, int threads_num);
+inline int preproc_albus_binary_search(int *row_id, int block_start_indx, int N) {
+	// return max c : row_id[c] <= block_start_indx
+	int l = 0, r = N, res = 0;
+	while (l <= r) {
+		int c = (l + r) / 2;
+        if (row_id[c] <= block_start_indx) {
+			res = c;
+			l = c + 1;
+		}
+		else {
+			r = c - 1;
+		}
+	}
+	return res;
+}
+
+template <typename T>
+void preproc_albus_balance(const matrix_CSR<T>& mtx_CSR, int* start, int* block_start, int threads_num) {
+	const int n = mtx_CSR.N;
+	const int nz = mtx_CSR.row_id[n];
+	const int TT = nz / threads_num;
+	start[threads_num] = n;
+	block_start[threads_num] = nz;
+	for (int i = 0; i < threads_num; i++) {
+		block_start[i] = i * TT;
+		start[i] = preproc_albus_binary_search(mtx_CSR.row_id, block_start[i], n);
+	}
+}
 
 // ALBUS_OMP
 
-vector_format spmv_albus_omp(const matrix_CSR& mtx_CSR, const vector_format& vec, int* start, int* block_start, int threads_num);
-void spmv_albus_omp_noalloc(const matrix_CSR& mtx_CSR, const vector_format& vec, int* start, int* block_start, int threads_num, vector_format& res);
+//vector_format spmv_albus_omp(const matrix_CSR& mtx_CSR, const vector_format& vec, int* start, int* block_start, int threads_num);
+void spmv_albus_omp_noalloc(const matrix_CSR<double>& mtx_CSR, const vector_format<double>& vec, int* start, int* block_start, int threads_num, vector_format<double>& res);
 
 // ALBUS_OMP_V
 
-vector_format spmv_albus_omp_v(const matrix_CSR& mtx_CSR, const vector_format& vec, int* start, int* block_start, int threads_num);
-void spmv_albus_omp_v_noalloc(const matrix_CSR& mtx_CSR, const vector_format& vec, int* start, int* block_start, int threads_num, vector_format& res);
+//vector_format spmv_albus_omp_v(const matrix_CSR& mtx_CSR, const vector_format& vec, int* start, int* block_start, int threads_num);
+//void spmv_albus_omp_v_noalloc(const matrix_CSR& mtx_CSR, const vector_format& vec, int* start, int* block_start, int threads_num, vector_format& res);
 
-void spmv_albus_omp_v_noalloc_m1(const matrix_CSR& mtx_CSR, const vector_format& vec, int* start, int* block_start, int threads_num, vector_format& res);
-void spmv_albus_omp_v_noalloc_m2(const matrix_CSR& mtx_CSR, const vector_format& vec, int* start, int* block_start, int threads_num, vector_format& res);
-void spmv_albus_omp_v_noalloc_m4(const matrix_CSR& mtx_CSR, const vector_format& vec, int* start, int* block_start, int threads_num, vector_format& res);
-void spmv_albus_omp_v_noalloc_m8(const matrix_CSR& mtx_CSR, const vector_format& vec, int* start, int* block_start, int threads_num, vector_format& res);
+void spmv_albus_omp_v_noalloc_m1(const matrix_CSR<double>& mtx_CSR, const vector_format<double>& vec, int* start, int* block_start, int threads_num, vector_format<double>& res);
+void spmv_albus_omp_v_noalloc_m2(const matrix_CSR<double>& mtx_CSR, const vector_format<double>& vec, int* start, int* block_start, int threads_num, vector_format<double>& res);
+void spmv_albus_omp_v_noalloc_m4(const matrix_CSR<double>& mtx_CSR, const vector_format<double>& vec, int* start, int* block_start, int threads_num, vector_format<double>& res);
+void spmv_albus_omp_v_noalloc_m8(const matrix_CSR<double>& mtx_CSR, const vector_format<double>& vec, int* start, int* block_start, int threads_num, vector_format<double>& res);
 
 // SELL_C_SIGMA
 
-vector_format spmv_sell_c_sigma(const matrix_SELL_C_sigma<4, 1>& mtx, const vector_format& vec, int threads_num);
-vector_format spmv_sell_c_sigma(const matrix_SELL_C_sigma<8, 1>& mtx, const vector_format& vec, int threads_num);
+//vector_format spmv_sell_c_sigma(const matrix_SELL_C_sigma<4, 1>& mtx, const vector_format& vec, int threads_num);
+//vector_format spmv_sell_c_sigma(const matrix_SELL_C_sigma<8, 1>& mtx, const vector_format& vec, int threads_num);
 
 template<int sigma>
-void spmv_sell_c_sigma_noalloc(const matrix_SELL_C_sigma<4, sigma>& mtx, const vector_format& vec, int threads_num, vector_format& res) {
+void spmv_sell_c_sigma_noalloc(const matrix_SELL_C_sigma<4, sigma, double>& mtx, const vector_format<double>& vec, int threads_num, vector_format<double>& res) {
 #pragma omp parallel for num_threads(threads_num) schedule(dynamic)
 	for (int i = 0; i < mtx.N / 4; i++) {
 		vfloat64m1_t v_summ = __riscv_vfmv_v_f_f64m1(0.0, 4);
@@ -71,7 +109,7 @@ void spmv_sell_c_sigma_noalloc(const matrix_SELL_C_sigma<4, sigma>& mtx, const v
 }
 
 template<int sigma>
-void spmv_sell_c_sigma_noalloc(const matrix_SELL_C_sigma<8, sigma>& mtx, const vector_format& vec, int threads_num, vector_format& res) {
+void spmv_sell_c_sigma_noalloc(const matrix_SELL_C_sigma<8, sigma, double>& mtx, const vector_format<double>& vec, int threads_num, vector_format<double>& res) {
 #pragma omp parallel for num_threads(threads_num) schedule(dynamic)
 	for (int i = 0; i < mtx.N / 8; i++) {
 		vfloat64m2_t v_summ = __riscv_vfmv_v_f_f64m2(0.0, 8);
@@ -87,7 +125,7 @@ void spmv_sell_c_sigma_noalloc(const matrix_SELL_C_sigma<8, sigma>& mtx, const v
 }
 
 template<int sigma>
-void spmv_sell_c_sigma_noalloc(const matrix_SELL_C_sigma<16, sigma>& mtx, const vector_format& vec, int threads_num, vector_format& res) {
+void spmv_sell_c_sigma_noalloc(const matrix_SELL_C_sigma<16, sigma, double>& mtx, const vector_format<double>& vec, int threads_num, vector_format<double>& res) {
 #pragma omp parallel for num_threads(threads_num) schedule(dynamic)
 	for (int i = 0; i < mtx.N / 16; i++) {
 		vfloat64m4_t v_summ = __riscv_vfmv_v_f_f64m4(0.0, 16);
@@ -103,7 +141,7 @@ void spmv_sell_c_sigma_noalloc(const matrix_SELL_C_sigma<16, sigma>& mtx, const 
 }
 
 template<int sigma>
-void spmv_sell_c_sigma_noalloc(const matrix_SELL_C_sigma<32, sigma>& mtx, const vector_format& vec, int threads_num, vector_format& res) {
+void spmv_sell_c_sigma_noalloc(const matrix_SELL_C_sigma<32, sigma, double>& mtx, const vector_format<double>& vec, int threads_num, vector_format<double>& res) {
 #pragma omp parallel for num_threads(threads_num) schedule(dynamic)
 	for (int i = 0; i < mtx.N / 32; i++) {
 		vfloat64m8_t v_summ = __riscv_vfmv_v_f_f64m8(0.0, 32);
@@ -119,7 +157,7 @@ void spmv_sell_c_sigma_noalloc(const matrix_SELL_C_sigma<32, sigma>& mtx, const 
 }
 
 template<int sigma>
-void spmv_sell_c_sigma_noalloc_unroll4(const matrix_SELL_C_sigma<4, sigma>& mtx, const vector_format& vec, int threads_num, vector_format& res) {
+void spmv_sell_c_sigma_noalloc_unroll4(const matrix_SELL_C_sigma<4, sigma, double>& mtx, const vector_format<double>& vec, int threads_num, vector_format<double>& res) {
 #pragma omp parallel for num_threads(threads_num) schedule(dynamic)
 	for (int i = 0; i < mtx.N / 4; i++) {
 		vfloat64m1_t v_summ_t1 = __riscv_vfmv_v_f_f64m1(0.0, 4);
@@ -160,7 +198,7 @@ void spmv_sell_c_sigma_noalloc_unroll4(const matrix_SELL_C_sigma<4, sigma>& mtx,
 }
 
 template<int sigma>
-void spmv_sell_c_sigma_noalloc_unroll4(const matrix_SELL_C_sigma<8, sigma>& mtx, const vector_format& vec, int threads_num, vector_format& res) {
+void spmv_sell_c_sigma_noalloc_unroll4(const matrix_SELL_C_sigma<8, sigma, double>& mtx, const vector_format<double>& vec, int threads_num, vector_format<double>& res) {
 #pragma omp parallel for num_threads(threads_num) schedule(dynamic)
 	for (int i = 0; i < mtx.N / 8; i++) {
 		vfloat64m2_t v_summ_t1 = __riscv_vfmv_v_f_f64m2(0.0, 8);
@@ -201,7 +239,7 @@ void spmv_sell_c_sigma_noalloc_unroll4(const matrix_SELL_C_sigma<8, sigma>& mtx,
 }
 
 template<int sigma>
-void spmv_sell_c_sigma_noalloc_unroll4(const matrix_SELL_C_sigma<16, sigma>& mtx, const vector_format& vec, int threads_num, vector_format& res) {
+void spmv_sell_c_sigma_noalloc_unroll4(const matrix_SELL_C_sigma<16, sigma, double>& mtx, const vector_format<double>& vec, int threads_num, vector_format<double>& res) {
 #pragma omp parallel for num_threads(threads_num) schedule(dynamic)
 	for (int i = 0; i < mtx.N / 16; i++) {
 		vfloat64m4_t v_summ_t1 = __riscv_vfmv_v_f_f64m4(0.0, 16);
@@ -242,7 +280,7 @@ void spmv_sell_c_sigma_noalloc_unroll4(const matrix_SELL_C_sigma<16, sigma>& mtx
 }
 
 template<int sigma>
-void spmv_sell_c_sigma_noalloc_unroll4(const matrix_SELL_C_sigma<32, sigma>& mtx, const vector_format& vec, int threads_num, vector_format& res) {
+void spmv_sell_c_sigma_noalloc_unroll4(const matrix_SELL_C_sigma<32, sigma, double>& mtx, const vector_format<double>& vec, int threads_num, vector_format<double>& res) {
 #pragma omp parallel for num_threads(threads_num) schedule(dynamic)
 	for (int i = 0; i < mtx.N / 32; i++) {
 		vfloat64m8_t v_summ_t1 = __riscv_vfmv_v_f_f64m8(0.0, 32);
@@ -285,7 +323,7 @@ void spmv_sell_c_sigma_noalloc_unroll4(const matrix_SELL_C_sigma<32, sigma>& mtx
 // SELL_C_SIGMA_no_vec
 
 template<int C, int sigma>
-void spmv_sell_c_sigma_noalloc_novec(const matrix_SELL_C_sigma<C, sigma>& mtx, const vector_format& vec, int threads_num, vector_format& res) {
+void spmv_sell_c_sigma_noalloc_novec(const matrix_SELL_C_sigma<C, sigma, double>& mtx, const vector_format<double>& vec, int threads_num, vector_format<double>& res) {
 #pragma omp parallel for num_threads(threads_num) schedule(dynamic)
 	for (int i = 0; i < mtx.N / C; i++) {
 		double v_summ[C]{};

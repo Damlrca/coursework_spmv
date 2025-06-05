@@ -54,21 +54,22 @@ string us_to_ms_string(long long time) {
 }
 
 // calc max difference of two vectors
-double calc_diff(const vector_format& a, const vector_format& b) {
+template <typename T>
+T calc_diff(const vector_format<T>& a, const vector_format<T>& b) {
 	assert(b.N >= a.N);
 	assert(a.N > 0);
-	double ans = 0;
+	T ans = 0;
 	for (int i = 0; i < a.N; i++) {
 		ans = max(ans, abs(a.value[i] - b.value[i]));
 	}
 	return ans;
 }
 
-vector_format v, naive_res;
+vector_format<double> v, naive_res;
 vector<string> results;
 constexpr int WARM_UP_CNT = 2; // number of warm up runs before actual measurement
 
-void test_naive(const int ite, const int threads_num, const matrix_CSR& mtx_CSR) {
+void test_naive(const int ite, const int threads_num, const matrix_CSR<double>& mtx_CSR) {
 	naive_res = move(alloc_vector_res(mtx_CSR));
 	
 	cout << "spmv_naive: ";
@@ -92,7 +93,7 @@ void test_naive(const int ite, const int threads_num, const matrix_CSR& mtx_CSR)
 	results.push_back(us_to_ms_string(res));
 }
 
-void test_albus(const int ite, const int threads_num, const matrix_CSR& mtx_CSR) {
+void test_albus(const int ite, const int threads_num, const matrix_CSR<double>& mtx_CSR) {
 	int start[100];
 	int block_start[100];
 	preproc_albus_balance(mtx_CSR, start, block_start, threads_num);
@@ -105,7 +106,7 @@ void test_albus(const int ite, const int threads_num, const matrix_CSR& mtx_CSR)
 	cout << "-------------------------" << endl;
 	
 	cout << "spmv_albus_omp: ";
-	vector_format albus_omp_res = alloc_vector_res(mtx_CSR);
+	vector_format<double> albus_omp_res = alloc_vector_res(mtx_CSR);
 	// warm up
 	for (int it = 0; it < WARM_UP_CNT; it++) {
 		spmv_albus_omp_noalloc(mtx_CSR, v, start, block_start, threads_num, albus_omp_res);
@@ -126,7 +127,7 @@ void test_albus(const int ite, const int threads_num, const matrix_CSR& mtx_CSR)
 
 using albus_t = decltype(spmv_albus_omp_v_noalloc_m1)*;
 
-void test_albus_v_mX(const int ite, const int threads_num, const matrix_CSR& mtx_CSR, string name,
+void test_albus_v_mX(const int ite, const int threads_num, const matrix_CSR<double>& mtx_CSR, string name,
                      albus_t albus_v_mX) {
 	int start[100];
 	int block_start[100];
@@ -141,7 +142,7 @@ void test_albus_v_mX(const int ite, const int threads_num, const matrix_CSR& mtx
 	
 	// cout << "spmv_albus_omp_v: ";
 	cout << name << ": ";
-	vector_format albus_omp_v_res = alloc_vector_res(mtx_CSR);
+	vector_format<double> albus_omp_v_res = alloc_vector_res(mtx_CSR);
 	// warm up
 	for (int it = 0; it < WARM_UP_CNT; it++) {
 		albus_v_mX(mtx_CSR, v, start, block_start, threads_num, albus_omp_v_res);
@@ -163,16 +164,16 @@ void test_albus_v_mX(const int ite, const int threads_num, const matrix_CSR& mtx
 constexpr int SIGMA_SORTED = 9'999'999;
 
 template<int C, int sigma>
-void test_sell_c_sigma(const int ite, const int threads_num, const matrix_CSR& mtx_CSR, string name) {
+void test_sell_c_sigma(const int ite, const int threads_num, const matrix_CSR<double>& mtx_CSR, string name) {
 	if (C != 4 && C != 8 && C != 16 && C != 32) {
 		cout << "test_sell_c_sigma : wrong C == " << C << endl;
 		return;
 	}
 	
 	cout << "mtx_SELL_C_sigma<" << C << ", " << sigma << ">: ";
-	matrix_SELL_C_sigma<C, sigma> mtx = convert_CSR_to_SELL_C_sigma<C, sigma>(mtx_CSR);
+	matrix_SELL_C_sigma<C, sigma, double> mtx = convert_CSR_to_SELL_C_sigma<C, sigma>(mtx_CSR);
 	
-	vector_format scs_res = alloc_vector_res(mtx);
+	vector_format<double> scs_res = alloc_vector_res(mtx);
 	// warm up
 	for (int it = 0; it < WARM_UP_CNT; it++) {
 		spmv_sell_c_sigma_noalloc(mtx, v, threads_num, scs_res);
@@ -185,7 +186,7 @@ void test_sell_c_sigma(const int ite, const int threads_num, const matrix_CSR& m
 		res = min(res, MyTimer::GetDifferenceUs());
 	}
 	
-	vector_format real_scs_res = alloc_vector_res(mtx);
+	vector_format<double> real_scs_res = alloc_vector_res(mtx);
 	for (int i = 0; i < mtx_CSR.N; i++) {
 		real_scs_res.value[mtx.rows_perm[i]] = scs_res.value[i];
 	}
@@ -198,16 +199,16 @@ void test_sell_c_sigma(const int ite, const int threads_num, const matrix_CSR& m
 }
 
 template<int C, int sigma>
-void test_sell_c_sigmau(const int ite, const int threads_num, const matrix_CSR& mtx_CSR, string name) {
+void test_sell_c_sigmau(const int ite, const int threads_num, const matrix_CSR<double>& mtx_CSR, string name) {
 	if (C != 4 && C != 8 && C != 16 && C != 32) {
 		cout << "test_sell_c_sigma : wrong C == " << C << endl;
 		return;
 	}
 	
 	cout << "mtx_SELL_C_sigma<" << C << ", " << sigma << ">: ";
-	matrix_SELL_C_sigma<C, sigma> mtx = convert_CSR_to_SELL_C_sigma<C, sigma>(mtx_CSR);
+	matrix_SELL_C_sigma<C, sigma, double> mtx = convert_CSR_to_SELL_C_sigma<C, sigma>(mtx_CSR);
 	
-	vector_format scs_res = alloc_vector_res(mtx);
+	vector_format<double> scs_res = alloc_vector_res(mtx);
 	// warm up
 	for (int it = 0; it < WARM_UP_CNT; it++) {
 		spmv_sell_c_sigma_noalloc_unroll4(mtx, v, threads_num, scs_res);
@@ -220,7 +221,7 @@ void test_sell_c_sigmau(const int ite, const int threads_num, const matrix_CSR& 
 		res = min(res, MyTimer::GetDifferenceUs());
 	}
 	
-	vector_format real_scs_res = alloc_vector_res(mtx);
+	vector_format<double> real_scs_res = alloc_vector_res(mtx);
 	for (int i = 0; i < mtx_CSR.N; i++) {
 		real_scs_res.value[mtx.rows_perm[i]] = scs_res.value[i];
 	}
@@ -233,16 +234,16 @@ void test_sell_c_sigmau(const int ite, const int threads_num, const matrix_CSR& 
 }
 
 template<int C, int sigma>
-void test_sell_c_sigma_novec(const int ite, const int threads_num, const matrix_CSR& mtx_CSR, string name) {
+void test_sell_c_sigma_novec(const int ite, const int threads_num, const matrix_CSR<double>& mtx_CSR, string name) {
 	if (C != 4 && C != 8 && C != 16 && C != 32) {
 		cout << "test_sell_c_sigma_novec : wrong C == " << C << endl;
 		return;
 	}
 	
 	cout << "mtx_SELL_C_sigma<" << C << ", " << sigma << "> novec: ";
-	matrix_SELL_C_sigma<C, sigma> mtx = convert_CSR_to_SELL_C_sigma<C, sigma>(mtx_CSR);
+	matrix_SELL_C_sigma<C, sigma, double> mtx = convert_CSR_to_SELL_C_sigma<C, sigma>(mtx_CSR);
 	
-	vector_format scs_res = alloc_vector_res(mtx);
+	vector_format<double> scs_res = alloc_vector_res(mtx);
 	// warm up
 	for (int it = 0; it < WARM_UP_CNT; it++) {
 		spmv_sell_c_sigma_noalloc_novec(mtx, v, threads_num, scs_res);
@@ -255,7 +256,7 @@ void test_sell_c_sigma_novec(const int ite, const int threads_num, const matrix_
 		res = min(res, MyTimer::GetDifferenceUs());
 	}
 	
-	vector_format real_scs_res = alloc_vector_res(mtx);
+	vector_format<double> real_scs_res = alloc_vector_res(mtx);
 	for (int i = 0; i < mtx_CSR.N; i++) {
 		real_scs_res.value[mtx.rows_perm[i]] = scs_res.value[i];
 	}
@@ -304,7 +305,7 @@ int main(int argc, char** argv) {
 	cout << "ite: " << ite << endl;
 	
 	char* filename = argv[1];
-	matrix_CSR mtx_CSR;
+	matrix_CSR<double> mtx_CSR;
 	try {
 		mtx_CSR = read_MTX_as_CSR(filename);
 	}
