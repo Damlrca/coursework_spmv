@@ -1,7 +1,8 @@
 # Copyright (C) 2024 Sadikov Damir
 # github.com/Damlrca/coursework_spmv
 
-all: main_exe main2_exe
+# all: main_exe main2_exe
+all: main2_exe
 
 # module load Xuantie-900-gcc-linux-5.10.4-glibc-x86_64-V2.8.1
 # module load gcc-riscv64-14.2.0
@@ -15,11 +16,11 @@ main2_exe: main2.o mtx_input.o mmio.o spmv_functions.o storage_formats.o
 main2.o: main/main2.cpp
 	$(CXX) -c $(CFLAGS) main/main2.cpp -o $@
 
-main_exe: main.o mtx_input.o mmio.o spmv_functions.o storage_formats.o
-	$(CXX) $(CFLAGS) $^ -o main_exe
+# main_exe: main.o mtx_input.o mmio.o spmv_functions.o storage_formats.o
+#	$(CXX) $(CFLAGS) $^ -o main_exe
 
-main.o: main/main.cpp
-	$(CXX) -c $(CFLAGS) main/main.cpp -o $@
+# main.o: main/main.cpp
+#	$(CXX) -c $(CFLAGS) main/main.cpp -o $@
 
 mtx_input.o: mtx_input/mtx_input.hpp mtx_input/mtx_input.cpp
 	$(CXX) -c $(CFLAGS) mtx_input/mtx_input.cpp -o $@

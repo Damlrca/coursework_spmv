@@ -408,6 +408,7 @@ void spmv_sell_c_sigma_noalloc(const matrix_SELL_C_sigma<64, sigma, float>& mtx,
 
 // spmv_sell_c_sigma_noalloc_unroll4 <double>
 
+/*
 template<int sigma>
 void spmv_sell_c_sigma_noalloc_unroll4(const matrix_SELL_C_sigma<4, sigma, double>& mtx, const vector_format<double>& vec, int threads_num, vector_format<double>& res) {
 #pragma omp parallel for num_threads(threads_num) schedule(dynamic)
@@ -567,6 +568,12 @@ void spmv_sell_c_sigma_noalloc_unroll4(const matrix_SELL_C_sigma<32, sigma, doub
 		__riscv_vse64_v_f64m8(res.value + i * 32, v_summ, 32);
 	}
 }
+*/
+
+// spmv_sell_c_sigma_noalloc_unroll4 <float>
+
+/*
+*/
 
 // SELL_C_SIGMA_no_vec
 
@@ -577,7 +584,7 @@ void spmv_sell_c_sigma_noalloc_novec(const matrix_SELL_C_sigma<C, sigma, T>& mtx
 		T v_summ[C]{};
 		for (int j = mtx.cs[i]; j < mtx.cs[i + 1]; j += C) {
 			for (int k = 0; k < C; k++) {
-				v_summ[k] += vec.value[*(mtx.col + j + k) >> 3] * mtx.value[j + k];
+				v_summ[k] += vec.value[*(mtx.col + j + k) / sizeof(T)] * mtx.value[j + k];
 			}
 		}
 		for (int k = 0; k < C; k++) {
