@@ -66,9 +66,11 @@ T calc_diff(const vector_format<T>& a, const vector_format<T>& b) {
 }
 
 vector_format<double> v, naive_res;
+vector_format<float> v_float, naive_res_float;
 vector<string> results;
 constexpr int WARM_UP_CNT = 2; // number of warm up runs before actual measurement
 
+// test_naive double
 void test_naive(const int ite, const int threads_num, const matrix_CSR<double>& mtx_CSR) {
 	naive_res = move(alloc_vector_res(mtx_CSR));
 	
@@ -89,6 +91,30 @@ void test_naive(const int ite, const int threads_num, const matrix_CSR<double>& 
 	cout << res << "us per iteration (minimum)" << endl;
 	
 	results.push_back("naive");
+	results.push_back(to_string(mtx_CSR.row_id[mtx_CSR.N]));
+	results.push_back(us_to_ms_string(res));
+}
+
+// test_naive float
+void test_naive(const int ite, const int threads_num, const matrix_CSR<float>& mtx_CSR) {
+	naive_res_float = move(alloc_vector_res(mtx_CSR));
+	
+	cout << "spmv_naive_float: ";
+	// warm up
+	for (int it = 0; it < WARM_UP_CNT; it++) {
+		spmv_naive_noalloc(mtx_CSR, v_float, threads_num, naive_res_float);
+	}
+	long long res = numeric_limits<long long>::max();
+	for (int it = 0; it < ite; it++) {
+		MyTimer::SetStartTime();
+		spmv_naive_noalloc(mtx_CSR, v_float, threads_num, naive_res_float);
+		MyTimer::SetEndTime();
+		res = min(res, MyTimer::GetDifferenceUs());
+	}
+	
+	cout << res << "us per iteration (minimum)" << endl;
+	
+	results.push_back("naive_float");
 	results.push_back(to_string(mtx_CSR.row_id[mtx_CSR.N]));
 	results.push_back(us_to_ms_string(res));
 }
@@ -163,6 +189,7 @@ void test_albus_v_mX(const int ite, const int threads_num, const matrix_CSR<doub
 
 constexpr int SIGMA_SORTED = 9'999'999;
 
+// test_sell_c_sigma double
 template<int C, int sigma>
 void test_sell_c_sigma(const int ite, const int threads_num, const matrix_CSR<double>& mtx_CSR, string name) {
 	if (C != 4 && C != 8 && C != 16 && C != 32) {
@@ -192,6 +219,42 @@ void test_sell_c_sigma(const int ite, const int threads_num, const matrix_CSR<do
 	}
 	
 	cout << res << "us per iteration (minimum); diff = " << calc_diff(naive_res, real_scs_res) << endl;
+	
+	results.push_back(name);
+	results.push_back(to_string(mtx.cs[mtx.N / C]));
+	results.push_back(us_to_ms_string(res));
+}
+
+// test_sell_c_sigma float
+template<int C, int sigma>
+void test_sell_c_sigma(const int ite, const int threads_num, const matrix_CSR<float>& mtx_CSR, string name) {
+	if (C != 8 && C != 16 && C != 32 && C != 64) {
+		cout << "test_sell_c_sigma : wrong C == " << C << endl;
+		return;
+	}
+	
+	cout << "mtx_SELL_C_sigma<" << C << ", " << sigma << ">: ";
+	matrix_SELL_C_sigma<C, sigma, float> mtx = convert_CSR_to_SELL_C_sigma<C, sigma>(mtx_CSR);
+	
+	vector_format<float> scs_res = alloc_vector_res(mtx);
+	// warm up
+	for (int it = 0; it < WARM_UP_CNT; it++) {
+		spmv_sell_c_sigma_noalloc(mtx, v_float, threads_num, scs_res);
+	}
+	long long res = numeric_limits<long long>::max();
+	for (int it = 0; it < ite; it++) {
+		MyTimer::SetStartTime();
+		spmv_sell_c_sigma_noalloc(mtx, v_float, threads_num, scs_res);
+		MyTimer::SetEndTime();
+		res = min(res, MyTimer::GetDifferenceUs());
+	}
+	
+	vector_format<float> real_scs_res = alloc_vector_res(mtx);
+	for (int i = 0; i < mtx_CSR.N; i++) {
+		real_scs_res.value[mtx.rows_perm[i]] = scs_res.value[i];
+	}
+	
+	cout << res << "us per iteration (minimum); diff = " << calc_diff(naive_res_float, real_scs_res) << endl;
 	
 	results.push_back(name);
 	results.push_back(to_string(mtx.cs[mtx.N / C]));
@@ -268,6 +331,24 @@ void test_sell_c_sigma_novec(const int ite, const int threads_num, const matrix_
 	results.push_back(us_to_ms_string(res));
 }
 
+matrix_CSR<float> mtx_CSR_double_to_mtx_CSR_float(const matrix_CSR<double>& mtx) {
+	matrix_CSR<float> res;
+	res.N = mtx.N;
+	res.M = mtx.M;
+	res.row_id = new int[res.N + 1];
+	for (int i = 0; i < res.N + 1; i++) {
+		res.row_id[i] = mtx.row_id[i];
+	}
+	int nz = res.row_id[res.N];
+	res.col = new int[nz];
+	res.value = new float[nz];
+	for (int i = 0; i < nz; i++) {
+		res.col[i] = mtx.col[i];
+		res.value[i] = mtx.value[i];
+	}
+	return res;
+}
+
 int main(int argc, char** argv) {
 	
 	cout << "------------------------------------------------------" << endl;
@@ -322,15 +403,24 @@ int main(int argc, char** argv) {
 	int M = mtx_CSR.M;
 	cout << "-------------------------" << endl;
 	
+	matrix_CSR<float> mtx_CSR_float = mtx_CSR_double_to_mtx_CSR_float(mtx_CSR);
+	
 	// INIT v
 	v.alloc(M, 32);
-	v.N = M;
-	v.value = new double[v.N];
+	// v.N = M;
+	// v.value = new double[v.N];
 	mt19937_64 gen(38);
 	uniform_real_distribution<> dis(0.0, 1.0);
 	for (int i = 0; i < v.N; i++) {
 		v.value[i] = dis(gen);
 	}
+	
+	// INIT v_float
+	v_float.alloc(M, 64);
+	for (int i = 0; i < v_float.N; i++) {
+		v_float.value[i] = v.value[i];
+	}
+	
 	cout << "vector v[" << v.N << "]: ";
 	for (int i = 0; i < 10; i++) {
 		cout << v.value[i] << " ";
@@ -394,6 +484,56 @@ int main(int argc, char** argv) {
 	// test_sell_c_sigmau<16, SIGMA_SORTED>(ite, threads_num, mtx_CSR, "scs16_S_u4");
 	test_sell_c_sigma<32, SIGMA_SORTED>(ite, threads_num, mtx_CSR, "scs32_S");
 	// test_sell_c_sigmau<32, SIGMA_SORTED>(ite, threads_num, mtx_CSR, "scs32_S_u4");
+	
+	cout << "vector naive_res      [" << v.N << "]: ";
+	for (int i = 0; i < 10; i++) {
+		cout << naive_res.value[i] << " ";
+	}
+	cout << "..." << endl;
+	
+	test_naive(ite, threads_num, mtx_CSR_float);
+	
+	cout << "vector naive_res_float[" << v.N << "]: ";
+	for (int i = 0; i < 10; i++) {
+		cout << naive_res_float.value[i] << " ";
+	}
+	cout << "..." << endl;
+	
+	test_sell_c_sigma< 8, 1>(ite, threads_num, mtx_CSR_float, "scs_8_1_float");
+	// test_sell_c_sigmau< 8, 1>(ite, threads_num, mtx_CSR_float, "scs_8_1_u4_float");
+	test_sell_c_sigma<16, 1>(ite, threads_num, mtx_CSR_float, "scs16_1_float");
+	// test_sell_c_sigmau<16, 1>(ite, threads_num, mtx_CSR_float, "scs16_1_u4_float");
+	test_sell_c_sigma<32, 1>(ite, threads_num, mtx_CSR_float, "scs32_1_float");
+	// test_sell_c_sigmau<32, 1>(ite, threads_num, mtx_CSR_float, "scs32_1_u4_float");
+	test_sell_c_sigma<64, 1>(ite, threads_num, mtx_CSR_float, "scs64_1_float");
+	// test_sell_c_sigmau<64, 1>(ite, threads_num, mtx_CSR_float, "scs64_1_u4_float");
+	
+	test_sell_c_sigma< 8, 2>(ite, threads_num, mtx_CSR_float, "scs_8_2_float");
+	// test_sell_c_sigmau< 8, 2>(ite, threads_num, mtx_CSR_float, "scs_8_2_u4_float");
+	test_sell_c_sigma<16, 2>(ite, threads_num, mtx_CSR_float, "scs16_2_float");
+	// test_sell_c_sigmau<16, 2>(ite, threads_num, mtx_CSR_float, "scs16_2_u4_float");
+	test_sell_c_sigma<32, 2>(ite, threads_num, mtx_CSR_float, "scs32_2_float");
+	// test_sell_c_sigmau<32, 2>(ite, threads_num, mtx_CSR_float, "scs32_2_u4_float");
+	test_sell_c_sigma<64, 2>(ite, threads_num, mtx_CSR_float, "scs64_2_float");
+	// test_sell_c_sigmau<64, 2>(ite, threads_num, mtx_CSR_float, "scs64_2_u4_float");
+	
+	test_sell_c_sigma< 8, 4>(ite, threads_num, mtx_CSR_float, "scs_8_4_float");
+	// test_sell_c_sigmau< 8, 4>(ite, threads_num, mtx_CSR_float, "scs_8_4_u4_float");
+	test_sell_c_sigma<16, 4>(ite, threads_num, mtx_CSR_float, "scs16_4_float");
+	// test_sell_c_sigmau<16, 4>(ite, threads_num, mtx_CSR_float, "scs16_4_u4_float");
+	test_sell_c_sigma<32, 4>(ite, threads_num, mtx_CSR_float, "scs32_4_float");
+	// test_sell_c_sigmau<32, 4>(ite, threads_num, mtx_CSR_float, "scs32_4_u4_float");
+	test_sell_c_sigma<64, 4>(ite, threads_num, mtx_CSR_float, "scs64_4_float");
+	// test_sell_c_sigmau<64, 4>(ite, threads_num, mtx_CSR_float, "scs64_4_u4_float");
+	
+	test_sell_c_sigma< 8, 8>(ite, threads_num, mtx_CSR_float, "scs_8_8_float");
+	// test_sell_c_sigmau< 8, 8>(ite, threads_num, mtx_CSR_float, "scs_8_8_u4_float");
+	test_sell_c_sigma<16, 8>(ite, threads_num, mtx_CSR_float, "scs16_8_float");
+	// test_sell_c_sigmau<16, 8>(ite, threads_num, mtx_CSR_float, "scs16_8_u4_float");
+	test_sell_c_sigma<32, 8>(ite, threads_num, mtx_CSR_float, "scs32_8_float");
+	// test_sell_c_sigmau<32, 8>(ite, threads_num, mtx_CSR_float, "scs32_8_u4_float");
+	test_sell_c_sigma<64, 8>(ite, threads_num, mtx_CSR_float, "scs64_8_float");
+	// test_sell_c_sigmau<64, 8>(ite, threads_num, mtx_CSR_float, "scs64_8_u4_float");
 	
 	cout << "-------------------------" << endl;
 	

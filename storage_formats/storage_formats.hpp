@@ -235,11 +235,11 @@ matrix_SELL_C_sigma<C, sigma, T> convert_CSR_to_SELL_C_sigma(const matrix_CSR<T>
 		for (int j = 0; j < TEMP[i].size(); j++) {
 			int indx = res.cs[i / C] + (i % C) + (j * C);
 			res.value[indx] = TEMP[i][j].second;
-			// index of column in bits (for riscv vlux intrinsic)
+			// index of column in bits (for riscv vlux intrinsic) // OR IN BYTES???
 			if (TEMP[i][j].first == -1)
 				res.col[indx] = -1;
 			else
-				res.col[indx] = TEMP[i][j].first * 8;
+				res.col[indx] = TEMP[i][j].first * sizeof(T);
 		}
 	}
 	for (int i = 0; i < res.N / C; i++) {
