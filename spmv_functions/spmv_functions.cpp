@@ -32,6 +32,8 @@ vector_format spmv_albus_omp(const matrix_CSR& mtx_CSR, const vector_format& vec
 
 // ALBUS_OMP_V
 
+// DOUBLE
+
 template<>
 double RV_fast1<double, 1>(int start1, int num, int* col_idx, double* mtx_val, double* vec_val) {
 	const size_t vl = __riscv_vsetvlmax_e64m1();
@@ -41,7 +43,7 @@ double RV_fast1<double, 1>(int start1, int num, int* col_idx, double* mtx_val, d
 	vfloat64m1_t v_summ = __riscv_vfmv_v_f_f64m1(0.0, vl);
 	while (num > vl) {
 		vuint32mf2_t index = __riscv_vle32_v_u32mf2(reinterpret_cast<uint32_t *>(col_idx + start1), vl);
-		vuint32mf2_t index_shftd = __riscv_vsll_vx_u32mf2(index, 3, vl);
+		vuint32mf2_t index_shftd = __riscv_vsll_vx_u32mf2(index, 3, vl); // 3 = log2(sizeof(double))
 		vfloat64m1_t v_1 = __riscv_vle64_v_f64m1(mtx_val + start1, vl);
 		vfloat64m1_t v_2 = __riscv_vluxei32_v_f64m1(vec_val, index_shftd, vl);
 		v_summ = __riscv_vfmacc_vv_f64m1(v_summ, v_1, v_2, vl);
@@ -67,7 +69,7 @@ double RV_fast1<double, 2>(int start1, int num, int* col_idx, double* mtx_val, d
 	vfloat64m2_t v_summ = __riscv_vfmv_v_f_f64m2(0.0, vl);
 	while (num > vl) {
 		vuint32m1_t index = __riscv_vle32_v_u32m1(reinterpret_cast<uint32_t *>(col_idx + start1), vl);
-		vuint32m1_t index_shftd = __riscv_vsll_vx_u32m1(index, 3, vl);
+		vuint32m1_t index_shftd = __riscv_vsll_vx_u32m1(index, 3, vl); // 3 = log2(sizeof(double))
 		vfloat64m2_t v_1 = __riscv_vle64_v_f64m2(mtx_val + start1, vl);
 		vfloat64m2_t v_2 = __riscv_vluxei32_v_f64m2(vec_val, index_shftd, vl);
 		v_summ = __riscv_vfmacc_vv_f64m2(v_summ, v_1, v_2, vl);
@@ -93,7 +95,7 @@ double RV_fast1<double, 4>(int start1, int num, int* col_idx, double* mtx_val, d
 	vfloat64m4_t v_summ = __riscv_vfmv_v_f_f64m4(0.0, vl);
 	while (num > vl) {
 		vuint32m2_t index = __riscv_vle32_v_u32m2(reinterpret_cast<uint32_t *>(col_idx + start1), vl);
-		vuint32m2_t index_shftd = __riscv_vsll_vx_u32m2(index, 3, vl);
+		vuint32m2_t index_shftd = __riscv_vsll_vx_u32m2(index, 3, vl); // 3 = log2(sizeof(double))
 		vfloat64m4_t v_1 = __riscv_vle64_v_f64m4(mtx_val + start1, vl);
 		vfloat64m4_t v_2 = __riscv_vluxei32_v_f64m4(vec_val, index_shftd, vl);
 		v_summ = __riscv_vfmacc_vv_f64m4(v_summ, v_1, v_2, vl);
@@ -119,7 +121,7 @@ double RV_fast1<double, 8>(int start1, int num, int* col_idx, double* mtx_val, d
 	vfloat64m8_t v_summ = __riscv_vfmv_v_f_f64m8(0.0, vl);
 	while (num > vl) {
 		vuint32m4_t index = __riscv_vle32_v_u32m4(reinterpret_cast<uint32_t *>(col_idx + start1), vl);
-		vuint32m4_t index_shftd = __riscv_vsll_vx_u32m4(index, 3, vl);
+		vuint32m4_t index_shftd = __riscv_vsll_vx_u32m4(index, 3, vl); // 3 = log2(sizeof(double))
 		vfloat64m8_t v_1 = __riscv_vle64_v_f64m8(mtx_val + start1, vl);
 		vfloat64m8_t v_2 = __riscv_vluxei32_v_f64m8(vec_val, index_shftd, vl);
 		v_summ = __riscv_vfmacc_vv_f64m8(v_summ, v_1, v_2, vl);
@@ -144,7 +146,6 @@ double calculation<double, 1>(int start1, int num, int* col_idx, double* mtx_val
 		return RV_fast2(start1, num, col_idx, mtx_val, vec_val);
 }
 
-
 template<>
 double calculation<double, 2>(int start1, int num, int* col_idx, double* mtx_val, double* vec_val) {
 	if (num >= __riscv_vsetvlmax_e64m2())
@@ -165,6 +166,144 @@ template<>
 double calculation<double, 8>(int start1, int num, int* col_idx, double* mtx_val, double* vec_val) {
 	if (num >= __riscv_vsetvlmax_e64m8())
 		return RV_fast1<double, 8>(start1, num, col_idx, mtx_val, vec_val);
+	else
+		return RV_fast2(start1, num, col_idx, mtx_val, vec_val);
+}
+
+// FLOAT
+
+template<>
+float RV_fast1<float, 1>(int start1, int num, int* col_idx, float* mtx_val, float* vec_val) {
+	const size_t vl = __riscv_vsetvlmax_e32m1();
+	int end1 = start1 + num;
+	float answer = 0;
+	
+	vfloat32m1_t v_summ = __riscv_vfmv_v_f_f32m1(0.0, vl);
+	while (num > vl) {
+		vuint32m1_t index = __riscv_vle32_v_u32m1(reinterpret_cast<uint32_t *>(col_idx + start1), vl);
+		vuint32m1_t index_shftd = __riscv_vsll_vx_u32m1(index, 2, vl); // 2 = log2(sizeof(float))
+		vfloat32m1_t v_1 = __riscv_vle32_v_f32m1(mtx_val + start1, vl);
+		vfloat32m1_t v_2 = __riscv_vluxei32_v_f32m1(vec_val, index_shftd, vl);
+		v_summ = __riscv_vfmacc_vv_f32m1(v_summ, v_1, v_2, vl);
+		start1 += vl;
+		num -= vl;
+	}
+	vfloat32m1_t v_res = __riscv_vfmv_v_f_f32m1(0.0, __riscv_vsetvlmax_e32m1());
+	v_res = __riscv_vfredosum_vs_f32m1_f32m1(v_summ, v_res, vl);
+	__riscv_vse32_v_f32m1(&answer, v_res, 1);
+	while (start1 < end1) {
+		answer += mtx_val[start1] * vec_val[col_idx[start1]];
+		start1++;
+	}
+	return answer;
+}
+
+template<>
+float RV_fast1<float, 2>(int start1, int num, int* col_idx, float* mtx_val, float* vec_val) {
+	const size_t vl = __riscv_vsetvlmax_e32m2();
+	int end1 = start1 + num;
+	float answer = 0;
+	
+	vfloat32m2_t v_summ = __riscv_vfmv_v_f_f32m2(0.0, vl);
+	while (num > vl) {
+		vuint32m2_t index = __riscv_vle32_v_u32m2(reinterpret_cast<uint32_t *>(col_idx + start1), vl);
+		vuint32m2_t index_shftd = __riscv_vsll_vx_u32m2(index, 2, vl); // 2 = log2(sizeof(float))
+		vfloat32m2_t v_1 = __riscv_vle32_v_f32m2(mtx_val + start1, vl);
+		vfloat32m2_t v_2 = __riscv_vluxei32_v_f32m2(vec_val, index_shftd, vl);
+		v_summ = __riscv_vfmacc_vv_f32m2(v_summ, v_1, v_2, vl);
+		start1 += vl;
+		num -= vl;
+	}
+	vfloat32m1_t v_res = __riscv_vfmv_v_f_f32m1(0.0, __riscv_vsetvlmax_e32m1());
+	v_res = __riscv_vfredosum_vs_f32m2_f32m1(v_summ, v_res, vl);
+	__riscv_vse32_v_f32m1(&answer, v_res, 1);
+	while (start1 < end1) {
+		answer += mtx_val[start1] * vec_val[col_idx[start1]];
+		start1++;
+	}
+	return answer;
+}
+
+template<>
+float RV_fast1<float, 4>(int start1, int num, int* col_idx, float* mtx_val, float* vec_val) {
+	const size_t vl = __riscv_vsetvlmax_e32m4();
+	int end1 = start1 + num;
+	float answer = 0;
+	
+	vfloat32m4_t v_summ = __riscv_vfmv_v_f_f32m4(0.0, vl);
+	while (num > vl) {
+		vuint32m4_t index = __riscv_vle32_v_u32m4(reinterpret_cast<uint32_t *>(col_idx + start1), vl);
+		vuint32m4_t index_shftd = __riscv_vsll_vx_u32m4(index, 2, vl); // 2 = log2(sizeof(float))
+		vfloat32m4_t v_1 = __riscv_vle32_v_f32m4(mtx_val + start1, vl);
+		vfloat32m4_t v_2 = __riscv_vluxei32_v_f32m4(vec_val, index_shftd, vl);
+		v_summ = __riscv_vfmacc_vv_f32m4(v_summ, v_1, v_2, vl);
+		start1 += vl;
+		num -= vl;
+	}
+	vfloat32m1_t v_res = __riscv_vfmv_v_f_f32m1(0.0, __riscv_vsetvlmax_e32m1());
+	v_res = __riscv_vfredosum_vs_f32m4_f32m1(v_summ, v_res, vl);
+	__riscv_vse32_v_f32m1(&answer, v_res, 1);
+	while (start1 < end1) {
+		answer += mtx_val[start1] * vec_val[col_idx[start1]];
+		start1++;
+	}
+	return answer;
+}
+
+template<>
+float RV_fast1<float, 8>(int start1, int num, int* col_idx, float* mtx_val, float* vec_val) {
+	const size_t vl = __riscv_vsetvlmax_e32m8();
+	int end1 = start1 + num;
+	float answer = 0;
+	
+	vfloat32m8_t v_summ = __riscv_vfmv_v_f_f32m8(0.0, vl);
+	while (num > vl) {
+		vuint32m8_t index = __riscv_vle32_v_u32m8(reinterpret_cast<uint32_t *>(col_idx + start1), vl);
+		vuint32m8_t index_shftd = __riscv_vsll_vx_u32m8(index, 2, vl); // 2 = log2(sizeof(float))
+		vfloat32m8_t v_1 = __riscv_vle32_v_f32m8(mtx_val + start1, vl);
+		vfloat32m8_t v_2 = __riscv_vluxei32_v_f32m8(vec_val, index_shftd, vl);
+		v_summ = __riscv_vfmacc_vv_f32m8(v_summ, v_1, v_2, vl);
+		start1 += vl;
+		num -= vl;
+	}
+	vfloat32m1_t v_res = __riscv_vfmv_v_f_f32m1(0.0, __riscv_vsetvlmax_e32m1());
+	v_res = __riscv_vfredosum_vs_f32m8_f32m1(v_summ, v_res, vl);
+	__riscv_vse32_v_f32m1(&answer, v_res, 1);
+	while (start1 < end1) {
+		answer += mtx_val[start1] * vec_val[col_idx[start1]];
+		start1++;
+	}
+	return answer;
+}
+
+template<>
+float calculation<float, 1>(int start1, int num, int* col_idx, float* mtx_val, float* vec_val) {
+	if (num >= __riscv_vsetvlmax_e32m1())
+		return RV_fast1<float, 1>(start1, num, col_idx, mtx_val, vec_val);
+	else
+		return RV_fast2(start1, num, col_idx, mtx_val, vec_val);
+}
+
+template<>
+float calculation<float, 2>(int start1, int num, int* col_idx, float* mtx_val, float* vec_val) {
+	if (num >= __riscv_vsetvlmax_e32m2())
+		return RV_fast1<float, 2>(start1, num, col_idx, mtx_val, vec_val);
+	else
+		return RV_fast2(start1, num, col_idx, mtx_val, vec_val);
+}
+
+template<>
+float calculation<float, 4>(int start1, int num, int* col_idx, float* mtx_val, float* vec_val) {
+	if (num >= __riscv_vsetvlmax_e32m4())
+		return RV_fast1<float, 4>(start1, num, col_idx, mtx_val, vec_val);
+	else
+		return RV_fast2(start1, num, col_idx, mtx_val, vec_val);
+}
+
+template<>
+float calculation<float, 8>(int start1, int num, int* col_idx, float* mtx_val, float* vec_val) {
+	if (num >= __riscv_vsetvlmax_e32m8())
+		return RV_fast1<float, 8>(start1, num, col_idx, mtx_val, vec_val);
 	else
 		return RV_fast2(start1, num, col_idx, mtx_val, vec_val);
 }

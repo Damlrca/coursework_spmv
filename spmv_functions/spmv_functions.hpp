@@ -94,6 +94,11 @@ T RV_fast2(int start1, int num, int* col_idx, T* mtx_val, T* vec_val) {
 template <typename T, int M>
 T RV_fast1(int start1, int num, int* col_idx, T* mtx_val, T* vec_val);
 
+template <typename T, int M>
+T calculation(int start1, int num, int* col_idx, T* mtx_val, T* vec_val);
+
+// DOUBLE
+
 template<>
 double RV_fast1<double, 1>(int start1, int num, int* col_idx, double* mtx_val, double* vec_val);
 
@@ -106,9 +111,6 @@ double RV_fast1<double, 4>(int start1, int num, int* col_idx, double* mtx_val, d
 template<>
 double RV_fast1<double, 8>(int start1, int num, int* col_idx, double* mtx_val, double* vec_val);
 
-template <typename T, int M>
-T calculation(int start1, int num, int* col_idx, T* mtx_val, T* vec_val);
-
 template<>
 double calculation<double, 1>(int start1, int num, int* col_idx, double* mtx_val, double* vec_val);
 
@@ -120,6 +122,36 @@ double calculation<double, 4>(int start1, int num, int* col_idx, double* mtx_val
 
 template<>
 double calculation<double, 8>(int start1, int num, int* col_idx, double* mtx_val, double* vec_val);
+
+// FLOAT
+
+template<>
+float RV_fast1<float, 1>(int start1, int num, int* col_idx, float* mtx_val, float* vec_val);
+
+template<>
+float RV_fast1<float, 2>(int start1, int num, int* col_idx, float* mtx_val, float* vec_val);
+
+template<>
+float RV_fast1<float, 4>(int start1, int num, int* col_idx, float* mtx_val, float* vec_val);
+
+template<>
+float RV_fast1<float, 8>(int start1, int num, int* col_idx, float* mtx_val, float* vec_val);
+
+template<>
+float calculation<float, 1>(int start1, int num, int* col_idx, float* mtx_val, float* vec_val);
+
+template<>
+float calculation<float, 2>(int start1, int num, int* col_idx, float* mtx_val, float* vec_val);
+
+template<>
+float calculation<float, 4>(int start1, int num, int* col_idx, float* mtx_val, float* vec_val);
+
+template<>
+float calculation<float, 8>(int start1, int num, int* col_idx, float* mtx_val, float* vec_val);
+
+// ALBUS_OMP_V
+
+//vector_format spmv_albus_omp_v(const matrix_CSR& mtx_CSR, const vector_format& vec, int* start, int* block_start, int threads_num);
 
 template <typename T, int M>
 void albus_thread_block_v(T* mtx_val, int* mtx_col, int* row_id,
@@ -171,20 +203,6 @@ void spmv_albus_omp_v_noalloc(const matrix_CSR<T>& mtx_CSR, const vector_format<
 	
 	delete[] mid_ans;
 }
-
-/*
-template<>
-float RV_fast1<float, 1>(int start1, int num, int* col_idx, float* mtx_val, float* vec_val);
-
-template<>
-float RV_fast1<float, 2>(int start1, int num, int* col_idx, float* mtx_val, float* vec_val);
-
-template<>
-float RV_fast1<float, 4>(int start1, int num, int* col_idx, float* mtx_val, float* vec_val);
-
-template<>
-float RV_fast1<float, 8>(int start1, int num, int* col_idx, float* mtx_val, float* vec_val);
-*/
 
 // ALBUS_OMP
 
@@ -242,17 +260,6 @@ void spmv_albus_omp_noalloc(const matrix_CSR<T>& mtx_CSR, const vector_format<T>
 	
 	delete[] mid_ans;
 }
-
-
-
-// ALBUS_OMP_V
-
-//vector_format spmv_albus_omp_v(const matrix_CSR& mtx_CSR, const vector_format& vec, int* start, int* block_start, int threads_num);
-
-void spmv_albus_omp_v_noalloc_m1(const matrix_CSR<double>& mtx_CSR, const vector_format<double>& vec, int* start, int* block_start, int threads_num, vector_format<double>& res);
-void spmv_albus_omp_v_noalloc_m2(const matrix_CSR<double>& mtx_CSR, const vector_format<double>& vec, int* start, int* block_start, int threads_num, vector_format<double>& res);
-void spmv_albus_omp_v_noalloc_m4(const matrix_CSR<double>& mtx_CSR, const vector_format<double>& vec, int* start, int* block_start, int threads_num, vector_format<double>& res);
-void spmv_albus_omp_v_noalloc_m8(const matrix_CSR<double>& mtx_CSR, const vector_format<double>& vec, int* start, int* block_start, int threads_num, vector_format<double>& res);
 
 // SELL_C_SIGMA
 

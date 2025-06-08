@@ -119,6 +119,7 @@ void test_naive(const int ite, const int threads_num, const matrix_CSR<float>& m
 	results.push_back(us_to_ms_string(res));
 }
 
+// test_albus double
 void test_albus(const int ite, const int threads_num, const matrix_CSR<double>& mtx_CSR) {
 	int start[100];
 	int block_start[100];
@@ -151,6 +152,40 @@ void test_albus(const int ite, const int threads_num, const matrix_CSR<double>& 
 	results.push_back(us_to_ms_string(res_omp));
 }
 
+// test_albus float
+void test_albus(const int ite, const int threads_num, const matrix_CSR<float>& mtx_CSR) {
+	int start[100];
+	int block_start[100];
+	preproc_albus_balance(mtx_CSR, start, block_start, threads_num);
+	cout << "-------------------------" << endl;
+	cout << "albus precalc" << endl;
+	cout << "      start: ";
+	for (int i = 0; i <= threads_num; i++) cout << start[i] << " "; cout << "\n";
+	cout << "block_start: ";
+	for (int i = 0; i <= threads_num; i++) cout << block_start[i] << " "; cout << "\n";
+	cout << "-------------------------" << endl;
+	
+	cout << "spmv_albus_omp_float: ";
+	vector_format<float> albus_omp_res = alloc_vector_res(mtx_CSR);
+	// warm up
+	for (int it = 0; it < WARM_UP_CNT; it++) {
+		spmv_albus_omp_noalloc(mtx_CSR, v_float, start, block_start, threads_num, albus_omp_res);
+	}
+	long long res_omp = numeric_limits<long long>::max();
+	for (int it = 0; it < ite; it++) {
+		MyTimer::SetStartTime();
+		spmv_albus_omp_noalloc(mtx_CSR, v_float, start, block_start, threads_num, albus_omp_res);
+		MyTimer::SetEndTime();
+		res_omp = min(res_omp, MyTimer::GetDifferenceUs());
+	}
+	cout << res_omp << "us per iteration (minimum); diff = " << calc_diff(naive_res_float, albus_omp_res) << endl;
+	
+	results.push_back("albus_float");
+	results.push_back(to_string(mtx_CSR.row_id[mtx_CSR.N]));
+	results.push_back(us_to_ms_string(res_omp));
+}
+
+// test_albus_v double
 template <int M>
 void test_albus_v(const int ite, const int threads_num, const matrix_CSR<double>& mtx_CSR, string name) {
 	int start[100];
@@ -178,6 +213,40 @@ void test_albus_v(const int ite, const int threads_num, const matrix_CSR<double>
 		res_omp_v = min(res_omp_v, MyTimer::GetDifferenceUs());
 	}
 	cout << res_omp_v << "us per iteration (minimum); diff = " << calc_diff(naive_res, albus_omp_v_res) << endl;
+	
+	results.push_back(name);
+	results.push_back(to_string(mtx_CSR.row_id[mtx_CSR.N]));
+	results.push_back(us_to_ms_string(res_omp_v));
+}
+
+// test_albus_v float
+template <int M>
+void test_albus_v(const int ite, const int threads_num, const matrix_CSR<float>& mtx_CSR, string name) {
+	int start[100];
+	int block_start[100];
+	preproc_albus_balance(mtx_CSR, start, block_start, threads_num);
+	cout << "-------------------------" << endl;
+	cout << "albus precalc" << endl;
+	cout << "      start: ";
+	for (int i = 0; i <= threads_num; i++) cout << start[i] << " "; cout << "\n";
+	cout << "block_start: ";
+	for (int i = 0; i <= threads_num; i++) cout << block_start[i] << " "; cout << "\n";
+	cout << "-------------------------" << endl;
+	
+	cout << "albus_v_float<" << M << ">: ";
+	vector_format<float> albus_omp_v_res = alloc_vector_res(mtx_CSR);
+	// warm up
+	for (int it = 0; it < WARM_UP_CNT; it++) {
+		spmv_albus_omp_v_noalloc<float, M>(mtx_CSR, v_float, start, block_start, threads_num, albus_omp_v_res);
+	}
+	long long res_omp_v = numeric_limits<long long>::max();
+	for (int it = 0; it < ite; it++) {
+		MyTimer::SetStartTime();
+		spmv_albus_omp_v_noalloc<float, M>(mtx_CSR, v_float, start, block_start, threads_num, albus_omp_v_res);
+		MyTimer::SetEndTime();
+		res_omp_v = min(res_omp_v, MyTimer::GetDifferenceUs());
+	}
+	cout << res_omp_v << "us per iteration (minimum); diff = " << calc_diff(naive_res_float, albus_omp_v_res) << endl;
 	
 	results.push_back(name);
 	results.push_back(to_string(mtx_CSR.row_id[mtx_CSR.N]));
@@ -495,6 +564,12 @@ int main(int argc, char** argv) {
 		cout << naive_res_float.value[i] << " ";
 	}
 	cout << "..." << endl;
+	
+	test_albus(ite, threads_num, mtx_CSR_float);
+	test_albus_v<1>(ite, threads_num, mtx_CSR_float, "albus_v_m1_float");
+	test_albus_v<2>(ite, threads_num, mtx_CSR_float, "albus_v_m2_float");
+	test_albus_v<4>(ite, threads_num, mtx_CSR_float, "albus_v_m4_float");
+	test_albus_v<8>(ite, threads_num, mtx_CSR_float, "albus_v_m8_float");
 	
 	test_sell_c_sigma< 8, 1>(ite, threads_num, mtx_CSR_float, "scs_8_1_float");
 	// test_sell_c_sigmau< 8, 1>(ite, threads_num, mtx_CSR_float, "scs_8_1_u4_float");
