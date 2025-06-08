@@ -78,11 +78,172 @@ void preproc_albus_balance(const matrix_CSR<T>& mtx_CSR, int* start, int* block_
 	}
 }
 
+// ALBUS_INTERNAL
+
+template <typename T>
+T RV_fast2(int start1, int num, int* col_idx, T* mtx_val, T* vec_val) {
+	T answer = 0;
+	int end1 = start1 + num;
+	while (start1 < end1) {
+		answer += mtx_val[start1] * vec_val[col_idx[start1]];
+		start1++;
+	}
+	return answer;
+}
+
+template <typename T, int M>
+T RV_fast1(int start1, int num, int* col_idx, T* mtx_val, T* vec_val);
+
+template<>
+double RV_fast1<double, 1>(int start1, int num, int* col_idx, double* mtx_val, double* vec_val);
+
+template<>
+double RV_fast1<double, 2>(int start1, int num, int* col_idx, double* mtx_val, double* vec_val);
+
+template<>
+double RV_fast1<double, 4>(int start1, int num, int* col_idx, double* mtx_val, double* vec_val);
+
+template<>
+double RV_fast1<double, 8>(int start1, int num, int* col_idx, double* mtx_val, double* vec_val);
+
+template <typename T, int M>
+T calculation(int start1, int num, int* col_idx, T* mtx_val, T* vec_val);
+
+template<>
+double calculation<double, 1>(int start1, int num, int* col_idx, double* mtx_val, double* vec_val);
+
+template<>
+double calculation<double, 2>(int start1, int num, int* col_idx, double* mtx_val, double* vec_val);
+
+template<>
+double calculation<double, 4>(int start1, int num, int* col_idx, double* mtx_val, double* vec_val);
+
+template<>
+double calculation<double, 8>(int start1, int num, int* col_idx, double* mtx_val, double* vec_val);
+
+template <typename T, int M>
+void albus_thread_block_v(T* mtx_val, int* mtx_col, int* row_id,
+                          T* vec_val, T* vec_res,
+                          int* start, int* block_start, int thread_id, T* mid_ans) {
+	if (start[thread_id] < start[thread_id + 1]) {
+		{
+			int strt = block_start[thread_id];
+			int num = row_id[start[thread_id] + 1] - strt;
+			mid_ans[thread_id * 2] = calculation<T, M>(strt, num, mtx_col, mtx_val, vec_val);
+		}
+		for (int i = start[thread_id] + 1; i < start[thread_id + 1]; i++) {
+			int strt = row_id[i];
+			int num = row_id[i + 1] - strt;
+			vec_res[i] = calculation<T, M>(strt, num, mtx_col, mtx_val, vec_val);
+		}
+		{
+			int strt = row_id[start[thread_id + 1]];
+			int num = block_start[thread_id + 1] - strt;
+			mid_ans[thread_id * 2 + 1] = calculation<T, M>(strt, num, mtx_col, mtx_val, vec_val);
+		}
+	}
+	else {
+		{
+			int strt = block_start[thread_id];
+			int num = block_start[thread_id + 1] - strt;
+			mid_ans[thread_id * 2] = calculation<T, M>(strt, num, mtx_col, mtx_val, vec_val);
+			mid_ans[thread_id * 2 + 1] = 0; 
+		}
+	}
+}
+
+template <typename T, int M>
+void spmv_albus_omp_v_noalloc(const matrix_CSR<T>& mtx_CSR, const vector_format<T>& vec, int* start, int* block_start, int threads_num, vector_format<T>& res) {
+	std::memset(res.value, 0, sizeof(T) * res.N);
+	
+	T *mid_ans = new T[threads_num * 2];
+	
+#pragma omp parallel for num_threads(threads_num)
+	for (int i = 0; i < threads_num; i++) {
+        albus_thread_block_v<T, M>(mtx_CSR.value, mtx_CSR.col, mtx_CSR.row_id,
+                           vec.value, res.value, start, block_start, i, mid_ans);
+	}
+	
+	res.value[start[0]] = mid_ans[0];
+	for (int i = 1; i < threads_num; i++) {
+		res.value[start[i]] += mid_ans[i * 2 - 1] + mid_ans[i * 2];
+	}
+	
+	delete[] mid_ans;
+}
+
+/*
+template<>
+float RV_fast1<float, 1>(int start1, int num, int* col_idx, float* mtx_val, float* vec_val);
+
+template<>
+float RV_fast1<float, 2>(int start1, int num, int* col_idx, float* mtx_val, float* vec_val);
+
+template<>
+float RV_fast1<float, 4>(int start1, int num, int* col_idx, float* mtx_val, float* vec_val);
+
+template<>
+float RV_fast1<float, 8>(int start1, int num, int* col_idx, float* mtx_val, float* vec_val);
+*/
+
 // ALBUS_OMP
 
 //vector_format spmv_albus_omp(const matrix_CSR& mtx_CSR, const vector_format& vec, int* start, int* block_start, int threads_num);
 
-void spmv_albus_omp_noalloc(const matrix_CSR<double>& mtx_CSR, const vector_format<double>& vec, int* start, int* block_start, int threads_num, vector_format<double>& res);
+template <typename T>
+void albus_thread_block(T* mtx_val, int* mtx_col, int* row_id,
+                        T* vec_val, T* vec_res,
+                        int* start, int* block_start, int thread_id, T* mid_ans) {
+	if (start[thread_id] < start[thread_id + 1]) {
+		T temp = 0;
+		for (int j = block_start[thread_id]; j < row_id[start[thread_id] + 1]; j++) {
+			temp += mtx_val[j] * vec_val[mtx_col[j]];
+		}
+		mid_ans[thread_id * 2] = temp;
+		for (int i = start[thread_id] + 1; i < start[thread_id + 1]; i++) {
+			temp = 0;
+			for (int j = row_id[i]; j < row_id[i + 1]; j++) {
+				temp += mtx_val[j] * vec_val[mtx_col[j]];
+			}
+			vec_res[i] = temp;
+		}
+		temp = 0;
+		for (int j = row_id[start[thread_id + 1]]; j < block_start[thread_id + 1]; j++) {
+			temp += mtx_val[j] * vec_val[mtx_col[j]];
+		}
+		mid_ans[thread_id * 2 + 1] = temp;
+	}
+	else {
+		T temp = 0;
+		for (int j = block_start[thread_id]; j < block_start[thread_id + 1]; j++) {
+			temp += mtx_val[j] * vec_val[mtx_col[j]];
+		}
+		mid_ans[thread_id * 2] = temp;
+		mid_ans[thread_id * 2 + 1] = 0; 
+	}
+}
+
+template <typename T>
+void spmv_albus_omp_noalloc(const matrix_CSR<T>& mtx_CSR, const vector_format<T>& vec, int* start, int* block_start, int threads_num, vector_format<T>& res) {
+	std::memset(res.value, 0, sizeof(T) * res.N);
+	
+	T *mid_ans = new T[threads_num * 2];
+	
+#pragma omp parallel for num_threads(threads_num)
+	for (int i = 0; i < threads_num; i++) {
+        albus_thread_block(mtx_CSR.value, mtx_CSR.col, mtx_CSR.row_id,
+                           vec.value, res.value, start, block_start, i, mid_ans);
+	}
+	
+	res.value[start[0]] = mid_ans[0];
+	for (int i = 1; i < threads_num; i++) {
+		res.value[start[i]] += mid_ans[i * 2 - 1] + mid_ans[i * 2];
+	}
+	
+	delete[] mid_ans;
+}
+
+
 
 // ALBUS_OMP_V
 

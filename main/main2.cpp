@@ -151,10 +151,8 @@ void test_albus(const int ite, const int threads_num, const matrix_CSR<double>& 
 	results.push_back(us_to_ms_string(res_omp));
 }
 
-using albus_t = decltype(spmv_albus_omp_v_noalloc_m1)*;
-
-void test_albus_v_mX(const int ite, const int threads_num, const matrix_CSR<double>& mtx_CSR, string name,
-                     albus_t albus_v_mX) {
+template <int M>
+void test_albus_v(const int ite, const int threads_num, const matrix_CSR<double>& mtx_CSR, string name) {
 	int start[100];
 	int block_start[100];
 	preproc_albus_balance(mtx_CSR, start, block_start, threads_num);
@@ -166,17 +164,16 @@ void test_albus_v_mX(const int ite, const int threads_num, const matrix_CSR<doub
 	for (int i = 0; i <= threads_num; i++) cout << block_start[i] << " "; cout << "\n";
 	cout << "-------------------------" << endl;
 	
-	// cout << "spmv_albus_omp_v: ";
-	cout << name << ": ";
+	cout << "albus_v<" << M << ">: ";
 	vector_format<double> albus_omp_v_res = alloc_vector_res(mtx_CSR);
 	// warm up
 	for (int it = 0; it < WARM_UP_CNT; it++) {
-		albus_v_mX(mtx_CSR, v, start, block_start, threads_num, albus_omp_v_res);
+		spmv_albus_omp_v_noalloc<double, M>(mtx_CSR, v, start, block_start, threads_num, albus_omp_v_res);
 	}
 	long long res_omp_v = numeric_limits<long long>::max();
 	for (int it = 0; it < ite; it++) {
 		MyTimer::SetStartTime();
-		albus_v_mX(mtx_CSR, v, start, block_start, threads_num, albus_omp_v_res);
+		spmv_albus_omp_v_noalloc<double, M>(mtx_CSR, v, start, block_start, threads_num, albus_omp_v_res);
 		MyTimer::SetEndTime();
 		res_omp_v = min(res_omp_v, MyTimer::GetDifferenceUs());
 	}
@@ -193,11 +190,11 @@ constexpr int SIGMA_SORTED = 9'999'999;
 template<int C, int sigma>
 void test_sell_c_sigma(const int ite, const int threads_num, const matrix_CSR<double>& mtx_CSR, string name) {
 	if (C != 4 && C != 8 && C != 16 && C != 32) {
-		cout << "test_sell_c_sigma : wrong C == " << C << endl;
+		cout << "test_sell_c_sigma<double> : wrong C == " << C << endl;
 		return;
 	}
 	
-	cout << "mtx_SELL_C_sigma<" << C << ", " << sigma << ">: ";
+	cout << "mtx_SELL_C_sigma<double, " << C << ", " << sigma << ">: ";
 	matrix_SELL_C_sigma<C, sigma, double> mtx = convert_CSR_to_SELL_C_sigma<C, sigma>(mtx_CSR);
 	
 	vector_format<double> scs_res = alloc_vector_res(mtx);
@@ -229,11 +226,11 @@ void test_sell_c_sigma(const int ite, const int threads_num, const matrix_CSR<do
 template<int C, int sigma>
 void test_sell_c_sigma(const int ite, const int threads_num, const matrix_CSR<float>& mtx_CSR, string name) {
 	if (C != 8 && C != 16 && C != 32 && C != 64) {
-		cout << "test_sell_c_sigma : wrong C == " << C << endl;
+		cout << "test_sell_c_sigma<float> : wrong C == " << C << endl;
 		return;
 	}
 	
-	cout << "mtx_SELL_C_sigma<" << C << ", " << sigma << ">: ";
+	cout << "mtx_SELL_C_sigma<float, " << C << ", " << sigma << ">: ";
 	matrix_SELL_C_sigma<C, sigma, float> mtx = convert_CSR_to_SELL_C_sigma<C, sigma>(mtx_CSR);
 	
 	vector_format<float> scs_res = alloc_vector_res(mtx);
@@ -433,10 +430,10 @@ int main(int argc, char** argv) {
 	test_naive(ite, threads_num, mtx_CSR);
 	
 	test_albus(ite, threads_num, mtx_CSR);
-	test_albus_v_mX(ite, threads_num, mtx_CSR, "albus_v_m1", spmv_albus_omp_v_noalloc_m1);
-	test_albus_v_mX(ite, threads_num, mtx_CSR, "albus_v_m2", spmv_albus_omp_v_noalloc_m2);
-	test_albus_v_mX(ite, threads_num, mtx_CSR, "albus_v_m4", spmv_albus_omp_v_noalloc_m4);
-	test_albus_v_mX(ite, threads_num, mtx_CSR, "albus_v_m8", spmv_albus_omp_v_noalloc_m8);
+	test_albus_v<1>(ite, threads_num, mtx_CSR, "albus_v_m1");
+	test_albus_v<2>(ite, threads_num, mtx_CSR, "albus_v_m2");
+	test_albus_v<4>(ite, threads_num, mtx_CSR, "albus_v_m4");
+	test_albus_v<8>(ite, threads_num, mtx_CSR, "albus_v_m8");
 	
 	test_sell_c_sigma< 4, 1>(ite, threads_num, mtx_CSR, "scs_4_1");
 	// test_sell_c_sigmau< 4, 1>(ite, threads_num, mtx_CSR, "scs_4_1_u4");
