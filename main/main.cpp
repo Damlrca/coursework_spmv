@@ -1,6 +1,20 @@
 // Copyright (C) 2025 Sadikov Damir
 // github.com/Damlrca/coursework_spmv
 
+//
+// old file with main() function
+//
+// switch to main2.cpp
+//
+//
+//
+//
+//
+//
+//
+//
+//
+
 #include <iostream>
 #include <chrono>
 #include <set>

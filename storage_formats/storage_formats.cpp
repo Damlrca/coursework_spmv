@@ -8,7 +8,7 @@ extern "C" {
 #include <string.h>
 }
 
-matrix_CSR convert_COO_to_CSR(const matrix_COO& mtx_COO) {
+matrix_CSR<double> convert_COO_to_CSR(const matrix_COO<double>& mtx_COO) {
 	int N = mtx_COO.N;
 	int M = mtx_COO.M;
 	int nz = mtx_COO.nz;
@@ -36,7 +36,7 @@ matrix_CSR convert_COO_to_CSR(const matrix_COO& mtx_COO) {
 		++row_id[I[i] + 1];
 	}
 
-	matrix_CSR mtx_CSR;
+	matrix_CSR<double> mtx_CSR;
 	mtx_CSR.N = mtx_COO.N;
 	mtx_CSR.M = mtx_COO.M;
 	mtx_CSR.row_id = row_id;
@@ -46,8 +46,8 @@ matrix_CSR convert_COO_to_CSR(const matrix_COO& mtx_COO) {
 	return mtx_CSR;
 }
 
-static matrix_CSR create_transposed_CSR(matrix_CSR& mtx_CSR) {
-	matrix_CSR res;
+static matrix_CSR<double> create_transposed_CSR(matrix_CSR<double>& mtx_CSR) {
+	matrix_CSR<double> res;
 	int nz = mtx_CSR.row_id[mtx_CSR.N];
 	res.N = mtx_CSR.M;
 	res.M = mtx_CSR.N;
@@ -78,6 +78,6 @@ static matrix_CSR create_transposed_CSR(matrix_CSR& mtx_CSR) {
 	return res;
 }
 
-void transpose_CSR(matrix_CSR& mtx_CSR) {
+void transpose_CSR(matrix_CSR<double>& mtx_CSR) {
 	mtx_CSR = std::move(create_transposed_CSR(mtx_CSR));
 }

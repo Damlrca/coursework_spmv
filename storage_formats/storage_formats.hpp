@@ -12,11 +12,12 @@
 #include <vector>
 
 // COO - Coordinate list sparse matrix format
+template <typename T = double>
 struct matrix_COO {
 	int N = 0;
 	int M = 0;
 	int nz = 0;
-	double* val = nullptr;
+	T* val = nullptr;
 	int* I = nullptr;
 	int* J = nullptr;
 	matrix_COO() {}
@@ -40,12 +41,13 @@ struct matrix_COO {
 };
 
 // CSR - Compressed sparse row sparse matrix format (CRS - Compressed row storage)
+template <typename T = double>
 struct matrix_CSR {
 	int N = 0;
 	int M = 0;
 	int* row_id = nullptr;
 	int* col = nullptr;
-	double* value = nullptr;
+	T* value = nullptr;
 	matrix_CSR() {}
 	matrix_CSR(matrix_CSR&& mtx) {
 		*this = std::move(mtx);
@@ -65,15 +67,16 @@ struct matrix_CSR {
 	}
 };
 
-matrix_CSR convert_COO_to_CSR(const matrix_COO& mtx_COO);
+matrix_CSR<double> convert_COO_to_CSR(const matrix_COO<double>& mtx_COO);
 
-void transpose_CSR(matrix_CSR& mtx_CSR);
+void transpose_CSR(matrix_CSR<double>& mtx_CSR);
 
 // struct for storing a vector
+template <typename T = double>
 struct vector_format {
 	int N = 0;
-	double* value = nullptr;
-	double* value_buf = nullptr; // buffer for value (used for align memory)
+	T* value = nullptr;
+	T* value_buf = nullptr; // buffer for value (used for align memory)
 	vector_format() {}
 	vector_format(vector_format&& vec) {
 		*this = std::move(vec);
@@ -94,10 +97,10 @@ struct vector_format {
 			value_buf = nullptr;
 			this->N = 0;
 		}
-		value_buf = new double[N + C];
-		std::size_t value_buf_size = (N + C) * sizeof(double);
+		value_buf = new T[N + C];
+		std::size_t value_buf_size = (N + C) * sizeof(T);
 		void* temp_value_buf = (void*)value_buf;
-		value = (double*)std::align(C * sizeof(double), N * sizeof(double), temp_value_buf, value_buf_size);
+		value = (T*)std::align(C * sizeof(T), N * sizeof(T), temp_value_buf, value_buf_size);
 		this->N = N;
 	}
 };
@@ -107,13 +110,13 @@ struct vector_format {
 // sigma - number of consecutive blocks in which rows are sorted 
 //         in descending order of the number of non-zero elements
 // if sigma is 1 then sorting is not applied
-template<int C, int sigma>
+template<int C, int sigma, typename T = double>
 struct matrix_SELL_C_sigma {
 	int N = 0;
 	int M = 0;
-	double* value = nullptr;
+	T* value = nullptr;
 	int* col = nullptr;
-	double* value_buf = nullptr; // buffer for value (used for align memory)
+	T* value_buf = nullptr; // buffer for value (used for align memory)
 	int* col_buf = nullptr; // buffer for col (used for align memory)
 	int* cs = nullptr;
 	int* cl = nullptr;
@@ -143,9 +146,9 @@ struct matrix_SELL_C_sigma {
 	}
 };
 
-template<int C, int sigma>
-matrix_SELL_C_sigma<C, sigma> convert_CSR_to_SELL_C_sigma(const matrix_CSR& mtx_CSR, int vertical_block_size = 9'999'999) {
-	matrix_SELL_C_sigma<C, sigma> res;
+template<int C, int sigma, typename T>
+matrix_SELL_C_sigma<C, sigma, T> convert_CSR_to_SELL_C_sigma(const matrix_CSR<T>& mtx_CSR, int vertical_block_size = 9'999'999) {
+	matrix_SELL_C_sigma<C, sigma, T> res;
 	res.N = (mtx_CSR.N + C - 1) / C * C;
 	res.M = mtx_CSR.M;
 	res.rows_perm = new int[res.N];
@@ -168,7 +171,7 @@ matrix_SELL_C_sigma<C, sigma> convert_CSR_to_SELL_C_sigma(const matrix_CSR& mtx_
 	memset(res.cs, 0, (res.N / C + 1) * sizeof(int));
 	memset(res.cl, 0, (res.N / C) * sizeof(int));
 	
-	std::vector<std::vector<std::pair<int, double>>> TEMP(res.N);
+	std::vector<std::vector<std::pair<int, T>>> TEMP(res.N);
 	for (int i = 0; i < res.N; i += C) {
 		std::vector<int> i_ids(C), i_sz(C);
 		for (int k = 0; k < C; k++) {
@@ -219,24 +222,24 @@ matrix_SELL_C_sigma<C, sigma> convert_CSR_to_SELL_C_sigma(const matrix_CSR& mtx_
 		S += res.cl[i] * C;
 	}
 	res.cs[res.N / C] = S;
-	res.value_buf = new double[S + C];
-	std::size_t value_buf_size = (S + C) * sizeof(double);
+	res.value_buf = new T[S + C];
+	std::size_t value_buf_size = (S + C) * sizeof(T);
 	void* temp_value_buf = (void*)res.value_buf;
-	res.value = (double*)std::align(C * sizeof(double), S * sizeof(double), temp_value_buf, value_buf_size);
+	res.value = (T*)std::align(C * sizeof(T), S * sizeof(T), temp_value_buf, value_buf_size);
 	res.col_buf = new int[S + C];
 	std::size_t col_buf_size = (S + C) * sizeof(int);
 	void* temp_col_buf = (void*)res.col_buf;
 	res.col = (int*)std::align(C * sizeof(int), S * sizeof(int), temp_col_buf, col_buf_size);
-	memset(res.value, 0, S * sizeof(double));
+	memset(res.value, 0, S * sizeof(T));
 	for (int i = 0; i < res.N; i++) {
 		for (int j = 0; j < TEMP[i].size(); j++) {
 			int indx = res.cs[i / C] + (i % C) + (j * C);
 			res.value[indx] = TEMP[i][j].second;
-			// index of column in bits (for riscv vlux intrinsic)
+			// index of column in bytes (for riscv vlux intrinsic)
 			if (TEMP[i][j].first == -1)
 				res.col[indx] = -1;
 			else
-				res.col[indx] = TEMP[i][j].first * 8;
+				res.col[indx] = TEMP[i][j].first * sizeof(T);
 		}
 	}
 	for (int i = 0; i < res.N / C; i++) {

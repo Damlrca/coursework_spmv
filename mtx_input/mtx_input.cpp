@@ -1,4 +1,4 @@
-// Copyright (C) 2024 Sadikov Damir
+// Copyright (C) 2025 Sadikov Damir
 // github.com/Damlrca/coursework_spmv
 
 #include "mtx_input.hpp"
@@ -137,15 +137,15 @@ static void read_MTX_as_COO_internal(const char* fname, int* M_, int* N_, int* n
     fclose(f);
 }
 
-matrix_COO read_MTX_as_COO(const char* fname) {
-	matrix_COO mtx_COO;
+matrix_COO<double> read_MTX_as_COO(const char* fname) {
+	matrix_COO<double> mtx_COO;
 	read_MTX_as_COO_internal(fname, &mtx_COO.M, &mtx_COO.N, &mtx_COO.nz,
 		&mtx_COO.val, &mtx_COO.I, &mtx_COO.J);
 	return mtx_COO;
 }
 
-matrix_CSR read_MTX_as_CSR(const char* fname) {
-	matrix_COO mtx_COO = read_MTX_as_COO(fname);
-	matrix_CSR mtx_CSR = convert_COO_to_CSR(mtx_COO);
+matrix_CSR<double> read_MTX_as_CSR(const char* fname) {
+	matrix_COO<double> mtx_COO = read_MTX_as_COO(fname);
+	matrix_CSR<double> mtx_CSR = convert_COO_to_CSR(mtx_COO);
 	return mtx_CSR;
 }
