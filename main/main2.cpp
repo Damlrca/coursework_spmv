@@ -517,28 +517,53 @@ int main(int argc, char** argv) {
 	
 	test_naive(ite, threads_num, mtx_CSR);
 	
+	cout << "vector naive_res      [" << v.N << "]: ";
+	for (int i = 0; i < 10; i++) {
+		cout << naive_res.value[i] << " ";
+	}
+	cout << "..." << endl;
+	
+	test_naive(ite, threads_num, mtx_CSR_float);
+	
+	cout << "vector naive_res_float[" << v.N << "]: ";
+	for (int i = 0; i < 10; i++) {
+		cout << naive_res_float.value[i] << " ";
+	}
+	cout << "..." << endl;
+	
 	test_albus(ite, threads_num, mtx_CSR);
-	test_albus_v<1>(ite, threads_num, mtx_CSR, "albus_v_m1");
-	test_albus_v<2>(ite, threads_num, mtx_CSR, "albus_v_m2");
-	test_albus_v<4>(ite, threads_num, mtx_CSR, "albus_v_m4");
-	test_albus_v<8>(ite, threads_num, mtx_CSR, "albus_v_m8");
+	// test_albus_v<1>(ite, threads_num, mtx_CSR, "albus_v_m1");
+	// test_albus_v<2>(ite, threads_num, mtx_CSR, "albus_v_m2");
+	// test_albus_v<4>(ite, threads_num, mtx_CSR, "albus_v_m4");
+	// test_albus_v<8>(ite, threads_num, mtx_CSR, "albus_v_m8");
 	
 	test_sell_c_sigma< 4, 1>(ite, threads_num, mtx_CSR, "scs_4_1");
 	test_sell_c_sigma< 8, 1>(ite, threads_num, mtx_CSR, "scs_8_1");
 	test_sell_c_sigma<16, 1>(ite, threads_num, mtx_CSR, "scs16_1");
 	test_sell_c_sigma<32, 1>(ite, threads_num, mtx_CSR, "scs32_1");
+	
+	test_sell_c_sigma<64, 1>(ite, threads_num, mtx_CSR_float, "scs64_1");
+	
 	test_sell_c_sigma< 4, 2>(ite, threads_num, mtx_CSR, "scs_4_2");
 	test_sell_c_sigma< 8, 2>(ite, threads_num, mtx_CSR, "scs_8_2");
 	test_sell_c_sigma<16, 2>(ite, threads_num, mtx_CSR, "scs16_2");
 	test_sell_c_sigma<32, 2>(ite, threads_num, mtx_CSR, "scs32_2");
+	
+	test_sell_c_sigma<64, 2>(ite, threads_num, mtx_CSR_float, "scs64_2");
+	
 	test_sell_c_sigma< 4, 4>(ite, threads_num, mtx_CSR, "scs_4_4");
 	test_sell_c_sigma< 8, 4>(ite, threads_num, mtx_CSR, "scs_8_4");
 	test_sell_c_sigma<16, 4>(ite, threads_num, mtx_CSR, "scs16_4");
 	test_sell_c_sigma<32, 4>(ite, threads_num, mtx_CSR, "scs32_4");
+	
+	test_sell_c_sigma<64, 4>(ite, threads_num, mtx_CSR_float, "scs64_4");
+	
 	test_sell_c_sigma< 4, 8>(ite, threads_num, mtx_CSR, "scs_4_8");
 	test_sell_c_sigma< 8, 8>(ite, threads_num, mtx_CSR, "scs_8_8");
 	test_sell_c_sigma<16, 8>(ite, threads_num, mtx_CSR, "scs16_8");
 	test_sell_c_sigma<32, 8>(ite, threads_num, mtx_CSR, "scs32_8");
+	
+	test_sell_c_sigma<64, 8>(ite, threads_num, mtx_CSR_float, "scs64_8");
 	
 	// test_sell_c_sigmau< 4, 1>(ite, threads_num, mtx_CSR, "scs_4_1_u4");
 	// test_sell_c_sigmau< 8, 1>(ite, threads_num, mtx_CSR, "scs_8_1_u4");
@@ -561,6 +586,9 @@ int main(int argc, char** argv) {
 	test_sell_c_sigma< 8, SIGMA_SORTED>(ite, threads_num, mtx_CSR, "scs_8_S");
 	test_sell_c_sigma<16, SIGMA_SORTED>(ite, threads_num, mtx_CSR, "scs16_S");
 	test_sell_c_sigma<32, SIGMA_SORTED>(ite, threads_num, mtx_CSR, "scs32_S");
+	
+	test_sell_c_sigma<64, SIGMA_SORTED>(ite, threads_num, mtx_CSR_float, "scs64_S");
+	
 	// test_sell_c_sigmau< 4, SIGMA_SORTED>(ite, threads_num, mtx_CSR, "scs_4_S_u4");
 	// test_sell_c_sigmau< 8, SIGMA_SORTED>(ite, threads_num, mtx_CSR, "scs_8_S_u4");
 	// test_sell_c_sigmau<16, SIGMA_SORTED>(ite, threads_num, mtx_CSR, "scs16_S_u4");
@@ -571,19 +599,7 @@ int main(int argc, char** argv) {
 	test_sell_c_sigma_novec<16, 1>(ite, threads_num, mtx_CSR, "scs16_1_nv");
 	test_sell_c_sigma_novec<32, 1>(ite, threads_num, mtx_CSR, "scs32_1_nv");
 	
-	cout << "vector naive_res      [" << v.N << "]: ";
-	for (int i = 0; i < 10; i++) {
-		cout << naive_res.value[i] << " ";
-	}
-	cout << "..." << endl;
 	
-	test_naive(ite, threads_num, mtx_CSR_float);
-	
-	cout << "vector naive_res_float[" << v.N << "]: ";
-	for (int i = 0; i < 10; i++) {
-		cout << naive_res_float.value[i] << " ";
-	}
-	cout << "..." << endl;
 	
 	test_albus(ite, threads_num, mtx_CSR_float);
 	test_albus_v<1>(ite, threads_num, mtx_CSR_float, "albus_v_m1_f");
