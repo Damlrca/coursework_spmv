@@ -3,7 +3,7 @@
 #SBATCH --time=400 --partition=k1_8gb
 #SBATCH --output=out-%j-run_main2.out
 
-echo start_run_main2
+echo start_run_main2_1
 
 date
 
@@ -27,6 +27,6 @@ date
 
 ./main2_exe ../test_mtx_3/consph.mtx 1 25
 
-echo end_run_main2
+echo end_run_main2_1
 
 date

@@ -1,26 +1,32 @@
-# Copyright (C) 2024 Sadikov Damir
+# Copyright (C) 2025 Sadikov Damir
 # github.com/Damlrca/coursework_spmv
 
-# all: main_exe main2_exe
-all: main2_exe
+# FIX IT!: no used header *.o in prerequisites -> to compile correctly need to 'make clean'
 
+# need to load module before compilation
+# old module:
 # module load Xuantie-900-gcc-linux-5.10.4-glibc-x86_64-V2.8.1
+# new module:
 # module load gcc-riscv64-14.2.0
+
 CC = riscv64-unknown-linux-gnu-gcc
 CXX = riscv64-unknown-linux-gnu-g++
 CFLAGS = -march=rv64gcv -fopenmp -O2
+
+# outdated main.cpp, use main2.cpp instead
+# all: main_exe main2_exe
+# main_exe: main.o mtx_input.o mmio.o spmv_functions.o storage_formats.o
+#	$(CXX) $(CFLAGS) $^ -o main_exe
+# main.o: main/main.cpp
+#	$(CXX) -c $(CFLAGS) main/main.cpp -o $@
+
+all: main2_exe
 
 main2_exe: main2.o mtx_input.o mmio.o spmv_functions.o storage_formats.o
 	$(CXX) $(CFLAGS) $^ -o main2_exe
 
 main2.o: main/main2.cpp
 	$(CXX) -c $(CFLAGS) main/main2.cpp -o $@
-
-# main_exe: main.o mtx_input.o mmio.o spmv_functions.o storage_formats.o
-#	$(CXX) $(CFLAGS) $^ -o main_exe
-
-# main.o: main/main.cpp
-#	$(CXX) -c $(CFLAGS) main/main.cpp -o $@
 
 mtx_input.o: mtx_input/mtx_input.hpp mtx_input/mtx_input.cpp
 	$(CXX) -c $(CFLAGS) mtx_input/mtx_input.cpp -o $@
@@ -37,4 +43,3 @@ storage_formats.o: storage_formats/storage_formats.hpp storage_formats/storage_f
 clean:
 	rm -f *.o
 
-# error: no used header *.o in prerequisites -> to compile correctly need to 'make clean'
