@@ -1,8 +1,6 @@
 # Copyright (C) 2025 Sadikov Damir
 # github.com/Damlrca/coursework_spmv
 
-# FIX IT!: no used header *.o in prerequisites -> to compile correctly need to 'make clean'
-
 # need to load module before compilation
 # old module:
 # module load Xuantie-900-gcc-linux-5.10.4-glibc-x86_64-V2.8.1
@@ -22,23 +20,29 @@ CFLAGS = -march=rv64gcv -fopenmp -O2
 
 all: main2_exe
 
+# main2_exe executable for testing spmv (everything required!)
 main2_exe: main2.o mtx_input.o mmio.o spmv_functions.o storage_formats.o
 	$(CXX) $(CFLAGS) $^ -o main2_exe
 
-main2.o: main/main2.cpp
-	$(CXX) -c $(CFLAGS) main/main2.cpp -o $@
+# main2_exe executable for testing spmv (spmv_functions.o, mtx_input.o, storage_formats.o required)
+main2.o: main/main2.cpp spmv_functions.o mtx_input.o storage_formats.o
+	$(CXX) -c $(CFLAGS) $< -o $@
 
-mtx_input.o: mtx_input/mtx_input.hpp mtx_input/mtx_input.cpp
-	$(CXX) -c $(CFLAGS) mtx_input/mtx_input.cpp -o $@
+# spmv functions (storage_formats.o required)
+spmv_functions.o: spmv_functions/spmv_functions.cpp spmv_functions/spmv_functions.hpp storage_formats.o
+	$(CXX) -c $(CFLAGS) $< -o $@
 
-mmio.o: mtx_input/mmio.h mtx_input/mmio.c
-	$(CC) -c $(CFLAGS) mtx_input/mmio.c -o $@
+# I/O functions for matrices (storage_formats.o, mmio.o required)
+mtx_input.o: mtx_input/mtx_input.cpp mtx_input/mtx_input.hpp storage_formats.o mmio.o
+	$(CXX) -c $(CFLAGS) $< -o $@
 
-spmv_functions.o: spmv_functions/spmv_functions.hpp spmv_functions/spmv_functions.cpp
-	$(CXX) -c $(CFLAGS) spmv_functions/spmv_functions.cpp -o $@
+# storage formats for sparse matrices
+storage_formats.o: storage_formats/storage_formats.cpp storage_formats/storage_formats.hpp
+	$(CXX) -c $(CFLAGS) $< -o $@
 
-storage_formats.o: storage_formats/storage_formats.hpp storage_formats/storage_formats.cpp
-	$(CXX) -c $(CFLAGS) storage_formats/storage_formats.cpp -o $@
+# Matrix Market I/O library
+mmio.o: mtx_input/mmio.c mtx_input/mmio.h
+	$(CC) -c $(CFLAGS) $< -o $@
 
 clean:
 	rm -f *.o
