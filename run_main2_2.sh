@@ -1,7 +1,7 @@
 #!/bin/sh
 
 #SBATCH --time=400 --partition=k1_8gb
-#SBATCH --output=out-%j-run_main2.out
+#SBATCH --output=out-%j-run_main2_2.out
 
 echo start_run_main2_2
 

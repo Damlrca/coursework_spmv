@@ -1,6 +1,8 @@
 # Copyright (C) 2025 Sadikov Damir
 # github.com/Damlrca/coursework_spmv
 
+# should i make cmake file instead?
+
 # need to load module before compilation
 # old module:
 # module load Xuantie-900-gcc-linux-5.10.4-glibc-x86_64-V2.8.1
