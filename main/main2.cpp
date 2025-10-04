@@ -317,43 +317,6 @@ void test_sell_c_sigma(const int ite, const int threads_num, const matrix_CSR<fl
 	results.push_back(us_to_ms_string(res));
 }
 
-/*
-template<int C, int sigma>
-void test_sell_c_sigmau(const int ite, const int threads_num, const matrix_CSR<double>& mtx_CSR, string name) {
-	if (C != 4 && C != 8 && C != 16 && C != 32) {
-		cout << "test_sell_c_sigma : wrong C == " << C << endl;
-		return;
-	}
-	
-	cout << "mtx_SELL_C_sigma<" << C << ", " << sigma << ">: ";
-	matrix_SELL_C_sigma<C, sigma, double> mtx = convert_CSR_to_SELL_C_sigma<C, sigma>(mtx_CSR);
-	
-	vector_format<double> scs_res = alloc_vector_res(mtx);
-	// warm up
-	for (int it = 0; it < WARM_UP_CNT; it++) {
-		spmv_sell_c_sigma_noalloc_unroll4(mtx, v, threads_num, scs_res);
-	}
-	long long res = numeric_limits<long long>::max();
-	for (int it = 0; it < ite; it++) {
-		MyTimer::SetStartTime();
-		spmv_sell_c_sigma_noalloc_unroll4(mtx, v, threads_num, scs_res);
-		MyTimer::SetEndTime();
-		res = min(res, MyTimer::GetDifferenceUs());
-	}
-	
-	vector_format<double> real_scs_res = alloc_vector_res(mtx);
-	for (int i = 0; i < mtx_CSR.N; i++) {
-		real_scs_res.value[mtx.rows_perm[i]] = scs_res.value[i];
-	}
-	
-	cout << res << "us per iteration (minimum); diff = " << calc_diff(naive_res, real_scs_res) << endl;
-	
-	results.push_back(name);
-	results.push_back(to_string(mtx.cs[mtx.N / C]));
-	results.push_back(us_to_ms_string(res));
-}
-*/
-
 // test_sell_c_sigma_novec double
 template<int C, int sigma>
 void test_sell_c_sigma_novec(const int ite, const int threads_num, const matrix_CSR<double>& mtx_CSR, string name) {
@@ -565,23 +528,6 @@ int main(int argc, char** argv) {
 	test_sell_c_sigma<32, 8>(ite, threads_num, mtx_CSR, "scs32_8");
 	
 	test_sell_c_sigma<64, 8>(ite, threads_num, mtx_CSR_float, "scs64_8");
-	
-	// test_sell_c_sigmau< 4, 1>(ite, threads_num, mtx_CSR, "scs_4_1_u4");
-	// test_sell_c_sigmau< 8, 1>(ite, threads_num, mtx_CSR, "scs_8_1_u4");
-	// test_sell_c_sigmau<16, 1>(ite, threads_num, mtx_CSR, "scs16_1_u4");
-	// test_sell_c_sigmau<32, 1>(ite, threads_num, mtx_CSR, "scs32_1_u4");
-	// test_sell_c_sigmau< 4, 2>(ite, threads_num, mtx_CSR, "scs_4_2_u4");
-	// test_sell_c_sigmau< 8, 2>(ite, threads_num, mtx_CSR, "scs_8_2_u4");
-	// test_sell_c_sigmau<16, 2>(ite, threads_num, mtx_CSR, "scs16_2_u4");
-	// test_sell_c_sigmau<32, 2>(ite, threads_num, mtx_CSR, "scs32_2_u4");
-	// test_sell_c_sigmau< 4, 4>(ite, threads_num, mtx_CSR, "scs_4_4_u4");
-	// test_sell_c_sigmau< 8, 4>(ite, threads_num, mtx_CSR, "scs_8_4_u4");
-	// test_sell_c_sigmau<16, 4>(ite, threads_num, mtx_CSR, "scs16_4_u4");
-	// test_sell_c_sigmau<32, 4>(ite, threads_num, mtx_CSR, "scs32_4_u4");
-	// test_sell_c_sigmau< 4, 8>(ite, threads_num, mtx_CSR, "scs_4_8_u4");
-	// test_sell_c_sigmau< 8, 8>(ite, threads_num, mtx_CSR, "scs_8_8_u4");
-	// test_sell_c_sigmau<16, 8>(ite, threads_num, mtx_CSR, "scs16_8_u4");
-	// test_sell_c_sigmau<32, 8>(ite, threads_num, mtx_CSR, "scs32_8_u4");
 
 	test_sell_c_sigma< 4, SIGMA_SORTED>(ite, threads_num, mtx_CSR, "scs_4_S");
 	test_sell_c_sigma< 8, SIGMA_SORTED>(ite, threads_num, mtx_CSR, "scs_8_S");
@@ -590,10 +536,6 @@ int main(int argc, char** argv) {
 	
 	test_sell_c_sigma<64, SIGMA_SORTED>(ite, threads_num, mtx_CSR_float, "scs64_S");
 	
-	// test_sell_c_sigmau< 4, SIGMA_SORTED>(ite, threads_num, mtx_CSR, "scs_4_S_u4");
-	// test_sell_c_sigmau< 8, SIGMA_SORTED>(ite, threads_num, mtx_CSR, "scs_8_S_u4");
-	// test_sell_c_sigmau<16, SIGMA_SORTED>(ite, threads_num, mtx_CSR, "scs16_S_u4");
-	// test_sell_c_sigmau<32, SIGMA_SORTED>(ite, threads_num, mtx_CSR, "scs32_S_u4");
 	
 	test_sell_c_sigma_novec< 4, 1>(ite, threads_num, mtx_CSR, "scs_4_1_nv");
 	test_sell_c_sigma_novec< 8, 1>(ite, threads_num, mtx_CSR, "scs_8_1_nv");
@@ -625,31 +567,10 @@ int main(int argc, char** argv) {
 	test_sell_c_sigma<32, 8>(ite, threads_num, mtx_CSR_float, "scs32_8_f");
 	test_sell_c_sigma<64, 8>(ite, threads_num, mtx_CSR_float, "scs64_8_f");
 	
-    // test_sell_c_sigmau< 8, 1>(ite, threads_num, mtx_CSR_float, "scs_8_1_u4_f");
-	// test_sell_c_sigmau<16, 1>(ite, threads_num, mtx_CSR_float, "scs16_1_u4_f");
-	// test_sell_c_sigmau<32, 1>(ite, threads_num, mtx_CSR_float, "scs32_1_u4_f");
-	// test_sell_c_sigmau<64, 1>(ite, threads_num, mtx_CSR_float, "scs64_1_u4_f");
-	// test_sell_c_sigmau< 8, 2>(ite, threads_num, mtx_CSR_float, "scs_8_2_u4_f");
-	// test_sell_c_sigmau<16, 2>(ite, threads_num, mtx_CSR_float, "scs16_2_u4_f");
-	// test_sell_c_sigmau<32, 2>(ite, threads_num, mtx_CSR_float, "scs32_2_u4_f");
-	// test_sell_c_sigmau<64, 2>(ite, threads_num, mtx_CSR_float, "scs64_2_u4_f");
-	// test_sell_c_sigmau< 8, 4>(ite, threads_num, mtx_CSR_float, "scs_8_4_u4_f");
-	// test_sell_c_sigmau<16, 4>(ite, threads_num, mtx_CSR_float, "scs16_4_u4_f");
-	// test_sell_c_sigmau<32, 4>(ite, threads_num, mtx_CSR_float, "scs32_4_u4_f");
-	// test_sell_c_sigmau<64, 4>(ite, threads_num, mtx_CSR_float, "scs64_4_u4_f");
-	// test_sell_c_sigmau< 8, 8>(ite, threads_num, mtx_CSR_float, "scs_8_8_u4_f");
-	// test_sell_c_sigmau<16, 8>(ite, threads_num, mtx_CSR_float, "scs16_8_u4_f");
-	// test_sell_c_sigmau<32, 8>(ite, threads_num, mtx_CSR_float, "scs32_8_u4_f");
-	// test_sell_c_sigmau<64, 8>(ite, threads_num, mtx_CSR_float, "scs64_8_u4_f");
-	
 	test_sell_c_sigma< 8, SIGMA_SORTED>(ite, threads_num, mtx_CSR_float, "scs_8_S_f");
 	test_sell_c_sigma<16, SIGMA_SORTED>(ite, threads_num, mtx_CSR_float, "scs16_S_f");
 	test_sell_c_sigma<32, SIGMA_SORTED>(ite, threads_num, mtx_CSR_float, "scs32_S_f");
 	test_sell_c_sigma<64, SIGMA_SORTED>(ite, threads_num, mtx_CSR_float, "scs64_S_f");
-	// test_sell_c_sigmau< 8, SIGMA_SORTED>(ite, threads_num, mtx_CSR_float, "scs_8_S_u4_f");
-	// test_sell_c_sigmau<16, SIGMA_SORTED>(ite, threads_num, mtx_CSR_float, "scs16_S_u4_f");
-	// test_sell_c_sigmau<32, SIGMA_SORTED>(ite, threads_num, mtx_CSR_float, "scs32_S_u4_f");
-	// test_sell_c_sigmau<64, SIGMA_SORTED>(ite, threads_num, mtx_CSR_float, "scs64_S_u4_f");
 	
 	test_sell_c_sigma_novec< 8, 1>(ite, threads_num, mtx_CSR_float, "scs_8_1_nv_f");
 	test_sell_c_sigma_novec<16, 1>(ite, threads_num, mtx_CSR_float, "scs16_1_nv_f");

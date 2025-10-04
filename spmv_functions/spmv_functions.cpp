@@ -12,27 +12,9 @@
 
 #include "spmv_functions.hpp"
 
-// NAIVE
-
-/*
-vector_format spmv_naive(const matrix_CSR& mtx_CSR, const vector_format& vec, int threads_num) {
-	vector_format res = alloc_vector_res(mtx_CSR);
-	spmv_naive_noalloc(mtx_CSR, vec, threads_num, res);
-	return res;
-}
-*/
-
-/*
-vector_format spmv_albus_omp(const matrix_CSR& mtx_CSR, const vector_format& vec, int* start, int* block_start, int threads_num) {
-	vector_format res = alloc_vector_res(mtx_CSR);
-	spmv_albus_omp_noalloc(mtx_CSR, vec, start, block_start, threads_num, res);
-	return res;
-}
-*/
-
 // ALBUS_OMP_V
 
-// DOUBLE
+// 1. DOUBLE
 
 template<>
 double RV_fast1<double, 1>(int start1, int num, int* col_idx, double* mtx_val, double* vec_val) {
@@ -170,7 +152,7 @@ double calculation<double, 8>(int start1, int num, int* col_idx, double* mtx_val
 		return RV_fast2(start1, num, col_idx, mtx_val, vec_val);
 }
 
-// FLOAT
+// 2. FLOAT
 
 template<>
 float RV_fast1<float, 1>(int start1, int num, int* col_idx, float* mtx_val, float* vec_val) {
@@ -307,29 +289,3 @@ float calculation<float, 8>(int start1, int num, int* col_idx, float* mtx_val, f
 	else
 		return RV_fast2(start1, num, col_idx, mtx_val, vec_val);
 }
-
-// SELL_C_SIGMA
-
-/*
-vector_format spmv_albus_omp_v(const matrix_CSR& mtx_CSR, const vector_format& vec, int* start, int* block_start, int threads_num) {
-	vector_format res = alloc_vector_res(mtx_CSR);
-	spmv_albus_omp_v_noalloc(mtx_CSR, vec, start, block_start, threads_num, res);
-	return res;
-}
-*/
-
-/*
-vector_format spmv_sell_c_sigma(const matrix_SELL_C_sigma<4, 1>& mtx, const vector_format& vec, int threads_num) {
-	vector_format res = alloc_vector_res(mtx);
-	spmv_sell_c_sigma_noalloc(mtx, vec, threads_num, res);
-	return res;
-}
-*/
-
-/*
-vector_format spmv_sell_c_sigma(const matrix_SELL_C_sigma<8, 1>& mtx, const vector_format& vec, int threads_num) {
-	vector_format res = alloc_vector_res(mtx);
-	spmv_sell_c_sigma_noalloc(mtx, vec, threads_num, res);
-	return res;
-}
-*/
