@@ -1,7 +1,7 @@
 // Copyright (C) 2025 Sadikov Damir
 // github.com/Damlrca/coursework_spmv
 
-#include "mtx_input.hpp"
+#include "mtx_io.hpp"
 
 extern "C" {
 #include <stdio.h>
@@ -12,8 +12,9 @@ extern "C" {
 }
 
 #include <iostream>
+#include <fstream>
 
-static void read_MTX_as_COO_internal(const char* fname, int* M_, int* N_, int* nz_, double** val_, int** I_, int** J_) {
+static void read_MTX_to_COO_internal(const char* fname, int* M_, int* N_, int* nz_, double** val_, int** I_, int** J_) {
     // based on mm_read_unsymmetric_sparse
 
     FILE* f;
@@ -137,15 +138,52 @@ static void read_MTX_as_COO_internal(const char* fname, int* M_, int* N_, int* n
     fclose(f);
 }
 
-matrix_COO<double> read_MTX_as_COO(const char* fname) {
+matrix_COO<double> read_MTX_to_COO(const char* fname) {
 	matrix_COO<double> mtx_COO;
-	read_MTX_as_COO_internal(fname, &mtx_COO.M, &mtx_COO.N, &mtx_COO.nz,
+	read_MTX_to_COO_internal(fname, &mtx_COO.M, &mtx_COO.N, &mtx_COO.nz,
 		&mtx_COO.val, &mtx_COO.I, &mtx_COO.J);
 	return mtx_COO;
 }
 
-matrix_CSR<double> read_MTX_as_CSR(const char* fname) {
-	matrix_COO<double> mtx_COO = read_MTX_as_COO(fname);
+matrix_CSR<double> read_MTX_to_CSR(const char* fname) {
+	matrix_COO<double> mtx_COO = read_MTX_to_COO(fname);
 	matrix_CSR<double> mtx_CSR = convert_COO_to_CSR(mtx_COO);
 	return mtx_CSR;
+}
+
+matrix_CSR<double> read_BIN_to_CSR(const char* fname) {
+	matrix_CSR<double> mtx_CSR;
+	std::ifstream fin(fname, std::ios::binary);
+	if (!fin) {
+		std::cout << "cannot open " << fname << " to read" << std::endl;
+		exit(-1);
+	}
+	fin.read(reinterpret_cast<char*>(&mtx_CSR.N), sizeof(int));
+	fin.read(reinterpret_cast<char*>(&mtx_CSR.M), sizeof(int));
+	int nz = 0;
+	fin.read(reinterpret_cast<char*>(&nz), sizeof(int));
+	mtx_CSR.row_id = new int[mtx_CSR.N + 1];
+	mtx_CSR.col = new int[nz];
+    mtx_CSR.value = new double[nz];
+	fin.read(reinterpret_cast<char*>(mtx_CSR.row_id), (mtx_CSR.N + 1) * sizeof(int));
+	fin.read(reinterpret_cast<char*>(mtx_CSR.col), nz * sizeof(int));
+	fin.read(reinterpret_cast<char*>(mtx_CSR.value), nz * sizeof(double));
+	fin.close();
+	return mtx_CSR;
+}
+
+void write_BIN_from_CSR(const matrix_CSR<double>& mtx, const char* fname) {
+	std::ofstream fout(fname, std::ios::binary);
+	if (!fout) {
+		std::cout << "cannot open " << fname << " to write" << std::endl;
+		exit(-1);
+	}
+	fout.write(reinterpret_cast<const char*>(&mtx.N), sizeof(int));
+	fout.write(reinterpret_cast<const char*>(&mtx.M), sizeof(int));
+	int nz = mtx.row_id[mtx.N];
+	fout.write(reinterpret_cast<const char*>(&nz), sizeof(int));
+	fout.write(reinterpret_cast<const char*>(mtx.row_id), (mtx.N + 1) * sizeof(int));
+	fout.write(reinterpret_cast<const char*>(mtx.col), nz * sizeof(int));
+	fout.write(reinterpret_cast<const char*>(mtx.value), nz * sizeof(double));
+	fout.close();
 }

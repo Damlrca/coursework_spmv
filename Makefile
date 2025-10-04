@@ -15,27 +15,38 @@ CFLAGS = -march=rv64gcv -fopenmp -O2
 
 # outdated main.cpp, use main2.cpp instead
 # all: main_exe main2_exe
-# main_exe: main.o mtx_input.o mmio.o spmv_functions.o storage_formats.o
+# main_exe: main.o mtx_io.o mmio.o spmv_functions.o storage_formats.o
 #	$(CXX) $(CFLAGS) $^ -o main_exe
 # main.o: main/main.cpp
 #	$(CXX) -c $(CFLAGS) main/main.cpp -o $@
 
 all: main2_exe
 
-# main2_exe executable for testing spmv (everything required!)
-main2_exe: main2.o mtx_input.o mmio.o spmv_functions.o storage_formats.o
-	$(CXX) $(CFLAGS) $^ -o main2_exe
 
-# main2_exe executable for testing spmv (spmv_functions.o, mtx_input.o, storage_formats.o required)
-main2.o: main/main2.cpp spmv_functions.o mtx_input.o storage_formats.o
+# main2_exe executable for testing spmv (everything required!)
+main2_exe: main2.o mtx_io.o mmio.o spmv_functions.o storage_formats.o
+	$(CXX) $(CFLAGS) $^ -o $@
+
+# main2_exe executable for testing spmv (spmv_functions.o, mtx_io.o, storage_formats.o required)
+main2.o: main/main2.cpp spmv_functions.o mtx_io.o storage_formats.o
 	$(CXX) -c $(CFLAGS) $< -o $@
+
+
+# mtx2bin_exe executable for convertion matrix from mtx to bin format
+mtx2bin_exe: mtx2bin.o mtx_io.o mmio.o storage_formats.o
+	$(CXX) $(CFLAGS) $^ -o $@
+
+# mtx2bin_exe executable for convertion matrix from mtx to bin format
+mtx2bin.o: mtx_io/mtx2bin.cpp mtx_io.o storage_formats.o
+	$(CXX) -c $(CFLAGS) $< -o $@
+
 
 # spmv functions (storage_formats.o required)
 spmv_functions.o: spmv_functions/spmv_functions.cpp spmv_functions/spmv_functions.hpp storage_formats.o
 	$(CXX) -c $(CFLAGS) $< -o $@
 
 # I/O functions for matrices (storage_formats.o, mmio.o required)
-mtx_input.o: mtx_input/mtx_input.cpp mtx_input/mtx_input.hpp storage_formats.o mmio.o
+mtx_io.o: mtx_io/mtx_io.cpp mtx_io/mtx_io.hpp storage_formats.o mmio.o
 	$(CXX) -c $(CFLAGS) $< -o $@
 
 # storage formats for sparse matrices
@@ -43,7 +54,7 @@ storage_formats.o: storage_formats/storage_formats.cpp storage_formats/storage_f
 	$(CXX) -c $(CFLAGS) $< -o $@
 
 # Matrix Market I/O library
-mmio.o: mtx_input/mmio.c mtx_input/mmio.h
+mmio.o: mtx_io/mmio.c mtx_io/mmio.h
 	$(CC) -c $(CFLAGS) $< -o $@
 
 clean:

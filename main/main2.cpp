@@ -13,7 +13,7 @@
 #include <vector>
 
 #include "../storage_formats/storage_formats.hpp"
-#include "../mtx_input/mtx_input.hpp"
+#include "../mtx_io/mtx_io.hpp"
 #include "../spmv_functions/spmv_functions.hpp"
 
 using namespace std;
@@ -470,18 +470,19 @@ int main(int argc, char** argv) {
 	}
 	cout << "ite: " << ite << endl;
 	
-	char* filename = argv[1];
+	// file in BIN format
+	char* filename_bin = argv[1];
 	matrix_CSR<double> mtx_CSR;
 	try {
-		mtx_CSR = read_MTX_as_CSR(filename);
+		mtx_CSR = read_BIN_to_CSR(filename_bin);
 	}
 	catch (...) {
-		cout << "error in reading matrix " << filename << endl;
+		cout << "error in reading matrix " << filename_bin << endl;
 		return -1;
 	}
 	transpose_CSR(mtx_CSR);
 	transpose_CSR(mtx_CSR);
-	cout << "matrix: " << filename << endl;
+	cout << "matrix: " << filename_bin << endl;
  	cout << "N: " << mtx_CSR.N << " M: " << mtx_CSR.M << endl;
 	cout << "nz: " << mtx_CSR.row_id[mtx_CSR.N] << endl;
 	int N = mtx_CSR.N;
@@ -658,7 +659,7 @@ int main(int argc, char** argv) {
 	cout << "-------------------------" << endl;
 	
 	cout << "data2 ";
-	cout << "mtx " << filename << " ";
+	cout << "mtx " << filename_bin << " ";
 	cout << "threads " << threads_num << " ";
 	cout << "ite " << ite << " ";
 	for (auto& i : results) {
