@@ -30,7 +30,7 @@ public:
 		end_time = myclock::now();
 	}
 	// difference in MICROSECONDS (us)
-	static long long GetDifferenceUs() {
+	long long GetDifferenceUs() {
 		return std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time).count();
 	}
 };
@@ -57,15 +57,15 @@ T calc_diff(const vector_format<T>& a, const vector_format<T>& b) {
 	return ans;
 }
 
-const string NAN = "NAN";
+const string NONE = "---";
 
 struct TestResult{
-	string NAME = NAN,     // short name for algorithm
-	string FUNCTION = NAN, // full function name
-	string TIME_MS = NAN,  // time in milliseconds
-	strign DIFF = NAN,     // difference in result between naive and this approach
-	string NZ = NAN,       // number of non-zero elements in this format
-	string CONV_TIME = NAN // time of convertion to format
+	string NAME = NONE;      // short name for algorithm
+	string FUNCTION = NONE;  // full function name
+	string TIME_MS = NONE;   // time in milliseconds
+	string DIFF = NONE;      // difference in result between naive and this approach
+	string NZ = NONE;        // number of non-zero elements in this format
+	string CONV_TIME = NONE; // time of convertion to format
 };
 
 vector_format<double> v, naive_res;
@@ -92,7 +92,7 @@ TestResult test_naive(const int ite, const int threads_num, const matrix_CSR<dou
 		timer.SetStartTime();
 		spmv_naive_noalloc(mtx_CSR, v, threads_num, naive_res);
 		timer.SetEndTime();
-		res = min(res, MyTimer::GetDifferenceUs());
+		res = min(res, timer.GetDifferenceUs());
 	}
 
 	TestResult test_result;
@@ -122,7 +122,7 @@ TestResult test_naive(const int ite, const int threads_num, const matrix_CSR<flo
 		timer.SetStartTime();
 		spmv_naive_noalloc(mtx_CSR, v_float, threads_num, naive_res_float);
 		timer.SetEndTime();
-		res = min(res, MyTimer::GetDifferenceUs());
+		res = min(res, timer.GetDifferenceUs());
 	}
 	
 	TestResult test_result;
@@ -146,7 +146,7 @@ TestResult test_albus(const int ite, const int threads_num, const matrix_CSR<dou
 	timer.SetStartTime();
 	preproc_albus_balance(mtx_CSR, start, block_start, threads_num);
 	timer.SetEndTime();
-	auto balance_time = timer.GetDifferenceUs;
+	auto balance_time = timer.GetDifferenceUs();
 	
 	cout << "run " << name << " " << function << " ..." << endl;
 	
@@ -170,7 +170,7 @@ TestResult test_albus(const int ite, const int threads_num, const matrix_CSR<dou
 	test_result.FUNCTION = function;
 	test_result.TIME_MS = us_to_ms_string(res);
 	test_result.NZ = to_string(mtx_CSR.row_id[mtx_CSR.N]);
-	test_result.DIFF = calc_diff(naive_res, albus_omp_res);
+	test_result.DIFF = to_string(calc_diff(naive_res, albus_omp_res));
 	test_result.CONV_TIME = us_to_ms_string(balance_time) + "(balance)";
 	return test_result;
 }
@@ -188,7 +188,7 @@ TestResult test_albus(const int ite, const int threads_num, const matrix_CSR<flo
 	timer.SetStartTime();
 	preproc_albus_balance(mtx_CSR, start, block_start, threads_num);
 	timer.SetEndTime();
-	auto balance_time = timer.GetDifferenceUs;
+	auto balance_time = timer.GetDifferenceUs();
 	
 	cout << "run " << name << " " << function << " ..." << endl;
 	
@@ -212,7 +212,7 @@ TestResult test_albus(const int ite, const int threads_num, const matrix_CSR<flo
 	test_result.FUNCTION = function;
 	test_result.TIME_MS = us_to_ms_string(res);
 	test_result.NZ = to_string(mtx_CSR.row_id[mtx_CSR.N]);
-	test_result.DIFF = calc_diff(naive_res_float, albus_omp_res);
+	test_result.DIFF = to_string(calc_diff(naive_res_float, albus_omp_res));
 	test_result.CONV_TIME = us_to_ms_string(balance_time) + "(balance)";
 	return test_result;
 }
@@ -231,7 +231,7 @@ TestResult test_albus_v(const int ite, const int threads_num, const matrix_CSR<d
 	timer.SetStartTime();
 	preproc_albus_balance(mtx_CSR, start, block_start, threads_num);
 	timer.SetEndTime();
-	auto balance_time = timer.GetDifferenceUs;
+	auto balance_time = timer.GetDifferenceUs();
 	
 	cout << "run " << name << " " << function << " ..." << endl;
 	
@@ -255,7 +255,7 @@ TestResult test_albus_v(const int ite, const int threads_num, const matrix_CSR<d
 	test_result.FUNCTION = function;
 	test_result.TIME_MS = us_to_ms_string(res_omp_v);
 	test_result.NZ = to_string(mtx_CSR.row_id[mtx_CSR.N]);
-	test_result.DIFF = calc_diff(naive_res, albus_omp_v_res);
+	test_result.DIFF = to_string(calc_diff(naive_res, albus_omp_v_res));
 	test_result.CONV_TIME = us_to_ms_string(balance_time) + "(balance)";
 	return test_result;
 }
@@ -274,7 +274,7 @@ TestResult test_albus_v(const int ite, const int threads_num, const matrix_CSR<f
 	timer.SetStartTime();
 	preproc_albus_balance(mtx_CSR, start, block_start, threads_num);
 	timer.SetEndTime();
-	auto balance_time = timer.GetDifferenceUs;
+	auto balance_time = timer.GetDifferenceUs();
 	
 	cout << "run " << name << " " << function << " ..." << endl;
 	
@@ -298,7 +298,7 @@ TestResult test_albus_v(const int ite, const int threads_num, const matrix_CSR<f
 	test_result.FUNCTION = function;
 	test_result.TIME_MS = us_to_ms_string(res_omp_v);
 	test_result.NZ = to_string(mtx_CSR.row_id[mtx_CSR.N]);
-	test_result.DIFF = calc_diff(naive_res_float, albus_omp_v_res);
+	test_result.DIFF = to_string(calc_diff(naive_res_float, albus_omp_v_res));
 	test_result.CONV_TIME = us_to_ms_string(balance_time) + "(balance)";
 	return test_result;
 }
@@ -310,7 +310,7 @@ template<int C, int sigma>
 TestResult test_sell_c_sigma(const int ite, const int threads_num, const matrix_CSR<double>& mtx_CSR) {
 	MyTimer timer;
 	const string name = "scs_" + to_string(C) + "_" + (sigma == SIGMA_SORTED ? string("S") : to_string(sigma));
-	const string function = "spmv_sell_c_sigma_noalloc<double, " + C + ", " + sigma + ">";
+	const string function = "spmv_sell_c_sigma_noalloc<double, " + to_string(C) + ", " + to_string(sigma) + ">";
 	cout << "run " << name << " " << function << endl;
 	
 	timer.SetStartTime();
@@ -343,7 +343,7 @@ TestResult test_sell_c_sigma(const int ite, const int threads_num, const matrix_
 	test_result.FUNCTION = function;
 	test_result.TIME_MS = us_to_ms_string(res);
 	test_result.NZ = to_string(mtx.cs[mtx.N / C]);
-	test_result.DIFF = calc_diff(naive_res, real_scs_res);
+	test_result.DIFF = to_string(calc_diff(naive_res, real_scs_res));
 	test_result.CONV_TIME = us_to_ms_string(conv_time);
 	return test_result;
 }
@@ -353,7 +353,7 @@ template<int C, int sigma>
 TestResult test_sell_c_sigma(const int ite, const int threads_num, const matrix_CSR<float>& mtx_CSR) {
 	MyTimer timer;
 	const string name = "scs_" + to_string(C) + "_" + (sigma == SIGMA_SORTED ? string("S") : to_string(sigma)) + "_f";
-	const string function = "spmv_sell_c_sigma_noalloc<float, " + C + ", " + sigma + ">";
+	const string function = "spmv_sell_c_sigma_noalloc<float, " + to_string(C) + ", " + to_string(sigma) + ">";
 	cout << "run " << name << " " << function << endl;
 	
 	timer.SetStartTime();
@@ -386,7 +386,7 @@ TestResult test_sell_c_sigma(const int ite, const int threads_num, const matrix_
 	test_result.FUNCTION = function;
 	test_result.TIME_MS = us_to_ms_string(res);
 	test_result.NZ = to_string(mtx.cs[mtx.N / C]);
-	test_result.DIFF = calc_diff(naive_res_float, real_scs_res);
+	test_result.DIFF = to_string(calc_diff(naive_res_float, real_scs_res));
 	test_result.CONV_TIME = us_to_ms_string(conv_time);
 	return test_result;
 }
@@ -396,7 +396,7 @@ template<int C, int sigma>
 TestResult test_sell_c_sigma_novec(const int ite, const int threads_num, const matrix_CSR<double>& mtx_CSR) {
 	MyTimer timer;
 	const string name = "scs_" + to_string(C) + "_" + (sigma == SIGMA_SORTED ? string("S") : to_string(sigma)) + "_novec";
-	const string function = "spmv_sell_c_sigma_noalloc_novec<double, " + C + ", " + sigma + ">";
+	const string function = "spmv_sell_c_sigma_noalloc_novec<double, " + to_string(C) + ", " + to_string(sigma) + ">";
 	cout << "run " << name << " " << function << endl;
 	
 	timer.SetStartTime();
@@ -429,7 +429,7 @@ TestResult test_sell_c_sigma_novec(const int ite, const int threads_num, const m
 	test_result.FUNCTION = function;
 	test_result.TIME_MS = us_to_ms_string(res);
 	test_result.NZ = to_string(mtx.cs[mtx.N / C]);
-	test_result.DIFF = calc_diff(naive_res, real_scs_res);
+	test_result.DIFF = to_string(calc_diff(naive_res, real_scs_res));
 	test_result.CONV_TIME = us_to_ms_string(conv_time);
 	return test_result;
 }
@@ -439,7 +439,7 @@ template<int C, int sigma>
 TestResult test_sell_c_sigma_novec(const int ite, const int threads_num, const matrix_CSR<float>& mtx_CSR) {
 	MyTimer timer;
 	const string name = "scs_" + to_string(C) + "_" + (sigma == SIGMA_SORTED ? string("S") : to_string(sigma)) + "_novec" + "_f";
-	const string function = "spmv_sell_c_sigma_noalloc_novec<float, " + C + ", " + sigma + ">";
+	const string function = "spmv_sell_c_sigma_noalloc_novec<float, " + to_string(C) + ", " + to_string(sigma) + ">";
 	cout << "run " << name << " " << function << endl;
 	
 	timer.SetStartTime();
@@ -472,7 +472,7 @@ TestResult test_sell_c_sigma_novec(const int ite, const int threads_num, const m
 	test_result.FUNCTION = function;
 	test_result.TIME_MS = us_to_ms_string(res);
 	test_result.NZ = to_string(mtx.cs[mtx.N / C]);
-	test_result.DIFF = calc_diff(naive_res_float, real_scs_res);
+	test_result.DIFF = to_string(calc_diff(naive_res_float, real_scs_res));
 	test_result.CONV_TIME = us_to_ms_string(conv_time);
 	return test_result;
 }
@@ -605,7 +605,7 @@ int main(int argc, char** argv) {
 	
 	// DOUBLE
 	
-	test_naive(ite, threads_num, mtx_CSR);
+	test_results.push_back(test_naive(ite, threads_num, mtx_CSR));
 	
 	cout << "vector naive_res[" << naive_res.N << "]: ";
 	for (int i = 0; i < min(10, naive_res.N); i++) {
@@ -616,45 +616,45 @@ int main(int argc, char** argv) {
 	}
 	cout << endl;
 	
-	test_albus(ite, threads_num, mtx_CSR);
-	test_albus_v<1>(ite, threads_num, mtx_CSR);
-	test_albus_v<2>(ite, threads_num, mtx_CSR);
-	test_albus_v<4>(ite, threads_num, mtx_CSR);
-	test_albus_v<8>(ite, threads_num, mtx_CSR);
+	test_results.push_back(test_albus(ite, threads_num, mtx_CSR));
+	test_results.push_back(test_albus_v<1>(ite, threads_num, mtx_CSR));
+	test_results.push_back(test_albus_v<2>(ite, threads_num, mtx_CSR));
+	test_results.push_back(test_albus_v<4>(ite, threads_num, mtx_CSR));
+	test_results.push_back(test_albus_v<8>(ite, threads_num, mtx_CSR));
 	
-	test_sell_c_sigma< 4, 1>(ite, threads_num, mtx_CSR);
-	test_sell_c_sigma< 8, 1>(ite, threads_num, mtx_CSR);
-	test_sell_c_sigma<16, 1>(ite, threads_num, mtx_CSR);
-	test_sell_c_sigma<32, 1>(ite, threads_num, mtx_CSR);
+	test_results.push_back(test_sell_c_sigma< 4, 1>(ite, threads_num, mtx_CSR));
+	test_results.push_back(test_sell_c_sigma< 8, 1>(ite, threads_num, mtx_CSR));
+	test_results.push_back(test_sell_c_sigma<16, 1>(ite, threads_num, mtx_CSR));
+	test_results.push_back(test_sell_c_sigma<32, 1>(ite, threads_num, mtx_CSR));
 	
-	test_sell_c_sigma< 4, 2>(ite, threads_num, mtx_CSR);
-	test_sell_c_sigma< 8, 2>(ite, threads_num, mtx_CSR);
-	test_sell_c_sigma<16, 2>(ite, threads_num, mtx_CSR);
-	test_sell_c_sigma<32, 2>(ite, threads_num, mtx_CSR);
+	test_results.push_back(test_sell_c_sigma< 4, 2>(ite, threads_num, mtx_CSR));
+	test_results.push_back(test_sell_c_sigma< 8, 2>(ite, threads_num, mtx_CSR));
+	test_results.push_back(test_sell_c_sigma<16, 2>(ite, threads_num, mtx_CSR));
+	test_results.push_back(test_sell_c_sigma<32, 2>(ite, threads_num, mtx_CSR));
 	
-	test_sell_c_sigma< 4, 4>(ite, threads_num, mtx_CSR);
-	test_sell_c_sigma< 8, 4>(ite, threads_num, mtx_CSR);
-	test_sell_c_sigma<16, 4>(ite, threads_num, mtx_CSR);
-	test_sell_c_sigma<32, 4>(ite, threads_num, mtx_CSR);
+	test_results.push_back(test_sell_c_sigma< 4, 4>(ite, threads_num, mtx_CSR));
+	test_results.push_back(test_sell_c_sigma< 8, 4>(ite, threads_num, mtx_CSR));
+	test_results.push_back(test_sell_c_sigma<16, 4>(ite, threads_num, mtx_CSR));
+	test_results.push_back(test_sell_c_sigma<32, 4>(ite, threads_num, mtx_CSR));
 	
-	test_sell_c_sigma< 4, 8>(ite, threads_num, mtx_CSR);
-	test_sell_c_sigma< 8, 8>(ite, threads_num, mtx_CSR);
-	test_sell_c_sigma<16, 8>(ite, threads_num, mtx_CSR);
-	test_sell_c_sigma<32, 8>(ite, threads_num, mtx_CSR);
+	test_results.push_back(test_sell_c_sigma< 4, 8>(ite, threads_num, mtx_CSR));
+	test_results.push_back(test_sell_c_sigma< 8, 8>(ite, threads_num, mtx_CSR));
+	test_results.push_back(test_sell_c_sigma<16, 8>(ite, threads_num, mtx_CSR));
+	test_results.push_back(test_sell_c_sigma<32, 8>(ite, threads_num, mtx_CSR));
 
-	test_sell_c_sigma< 4, SIGMA_SORTED>(ite, threads_num, mtx_CSR);
-	test_sell_c_sigma< 8, SIGMA_SORTED>(ite, threads_num, mtx_CSR);
-	test_sell_c_sigma<16, SIGMA_SORTED>(ite, threads_num, mtx_CSR);
-	test_sell_c_sigma<32, SIGMA_SORTED>(ite, threads_num, mtx_CSR);
+	test_results.push_back(test_sell_c_sigma< 4, SIGMA_SORTED>(ite, threads_num, mtx_CSR));
+	test_results.push_back(test_sell_c_sigma< 8, SIGMA_SORTED>(ite, threads_num, mtx_CSR));
+	test_results.push_back(test_sell_c_sigma<16, SIGMA_SORTED>(ite, threads_num, mtx_CSR));
+	test_results.push_back(test_sell_c_sigma<32, SIGMA_SORTED>(ite, threads_num, mtx_CSR));
 	
-	test_sell_c_sigma_novec< 4, 1>(ite, threads_num, mtx_CSR);
-	test_sell_c_sigma_novec< 8, 1>(ite, threads_num, mtx_CSR);
-	test_sell_c_sigma_novec<16, 1>(ite, threads_num, mtx_CSR);
-	test_sell_c_sigma_novec<32, 1>(ite, threads_num, mtx_CSR);
+	test_results.push_back(test_sell_c_sigma_novec< 4, 1>(ite, threads_num, mtx_CSR));
+	test_results.push_back(test_sell_c_sigma_novec< 8, 1>(ite, threads_num, mtx_CSR));
+	test_results.push_back(test_sell_c_sigma_novec<16, 1>(ite, threads_num, mtx_CSR));
+	test_results.push_back(test_sell_c_sigma_novec<32, 1>(ite, threads_num, mtx_CSR));
 	
 	// FLOAT
 	
-	test_naive(ite, threads_num, mtx_CSR_float);
+	test_results.push_back(test_naive(ite, threads_num, mtx_CSR_float));
 	
 	cout << "vector naive_res_float[" << naive_res_float.N << "]: ";
 	for (int i = 0; i < min(10, naive_res_float.N); i++) {
@@ -665,53 +665,80 @@ int main(int argc, char** argv) {
 	}
 	cout << endl;
 	
-	test_albus(ite, threads_num, mtx_CSR_float);
-	test_albus_v<1>(ite, threads_num, mtx_CSR_float);
-	test_albus_v<2>(ite, threads_num, mtx_CSR_float);
-	test_albus_v<4>(ite, threads_num, mtx_CSR_float);
-	test_albus_v<8>(ite, threads_num, mtx_CSR_float);
+	test_results.push_back(test_albus(ite, threads_num, mtx_CSR_float));
+	test_results.push_back(test_albus_v<1>(ite, threads_num, mtx_CSR_float));
+	test_results.push_back(test_albus_v<2>(ite, threads_num, mtx_CSR_float));
+	test_results.push_back(test_albus_v<4>(ite, threads_num, mtx_CSR_float));
+	test_results.push_back(test_albus_v<8>(ite, threads_num, mtx_CSR_float));
 	
-	test_sell_c_sigma< 8, 1>(ite, threads_num, mtx_CSR_float);
-	test_sell_c_sigma<16, 1>(ite, threads_num, mtx_CSR_float);
-	test_sell_c_sigma<32, 1>(ite, threads_num, mtx_CSR_float);
-	test_sell_c_sigma<64, 1>(ite, threads_num, mtx_CSR_float);
+	test_results.push_back(test_sell_c_sigma< 8, 1>(ite, threads_num, mtx_CSR_float));
+	test_results.push_back(test_sell_c_sigma<16, 1>(ite, threads_num, mtx_CSR_float));
+	test_results.push_back(test_sell_c_sigma<32, 1>(ite, threads_num, mtx_CSR_float));
+	test_results.push_back(test_sell_c_sigma<64, 1>(ite, threads_num, mtx_CSR_float));
 	
-	test_sell_c_sigma< 8, 2>(ite, threads_num, mtx_CSR_float);
-	test_sell_c_sigma<16, 2>(ite, threads_num, mtx_CSR_float);
-	test_sell_c_sigma<32, 2>(ite, threads_num, mtx_CSR_float);
-	test_sell_c_sigma<64, 2>(ite, threads_num, mtx_CSR_float);
+	test_results.push_back(test_sell_c_sigma< 8, 2>(ite, threads_num, mtx_CSR_float));
+	test_results.push_back(test_sell_c_sigma<16, 2>(ite, threads_num, mtx_CSR_float));
+	test_results.push_back(test_sell_c_sigma<32, 2>(ite, threads_num, mtx_CSR_float));
+	test_results.push_back(test_sell_c_sigma<64, 2>(ite, threads_num, mtx_CSR_float));
 	
-	test_sell_c_sigma< 8, 4>(ite, threads_num, mtx_CSR_float);
-	test_sell_c_sigma<16, 4>(ite, threads_num, mtx_CSR_float);
-	test_sell_c_sigma<32, 4>(ite, threads_num, mtx_CSR_float);
-	test_sell_c_sigma<64, 4>(ite, threads_num, mtx_CSR_float);
+	test_results.push_back(test_sell_c_sigma< 8, 4>(ite, threads_num, mtx_CSR_float));
+	test_results.push_back(test_sell_c_sigma<16, 4>(ite, threads_num, mtx_CSR_float));
+	test_results.push_back(test_sell_c_sigma<32, 4>(ite, threads_num, mtx_CSR_float));
+	test_results.push_back(test_sell_c_sigma<64, 4>(ite, threads_num, mtx_CSR_float));
 	
-	test_sell_c_sigma< 8, 8>(ite, threads_num, mtx_CSR_float);
-	test_sell_c_sigma<16, 8>(ite, threads_num, mtx_CSR_float);
-	test_sell_c_sigma<32, 8>(ite, threads_num, mtx_CSR_float);
-	test_sell_c_sigma<64, 8>(ite, threads_num, mtx_CSR_float);
+	test_results.push_back(test_sell_c_sigma< 8, 8>(ite, threads_num, mtx_CSR_float));
+	test_results.push_back(test_sell_c_sigma<16, 8>(ite, threads_num, mtx_CSR_float));
+	test_results.push_back(test_sell_c_sigma<32, 8>(ite, threads_num, mtx_CSR_float));
+	test_results.push_back(test_sell_c_sigma<64, 8>(ite, threads_num, mtx_CSR_float));
 	
-	test_sell_c_sigma< 8, SIGMA_SORTED>(ite, threads_num, mtx_CSR_float);
-	test_sell_c_sigma<16, SIGMA_SORTED>(ite, threads_num, mtx_CSR_float);
-	test_sell_c_sigma<32, SIGMA_SORTED>(ite, threads_num, mtx_CSR_float);
-	test_sell_c_sigma<64, SIGMA_SORTED>(ite, threads_num, mtx_CSR_float);
+	test_results.push_back(test_sell_c_sigma< 8, SIGMA_SORTED>(ite, threads_num, mtx_CSR_float));
+	test_results.push_back(test_sell_c_sigma<16, SIGMA_SORTED>(ite, threads_num, mtx_CSR_float));
+	test_results.push_back(test_sell_c_sigma<32, SIGMA_SORTED>(ite, threads_num, mtx_CSR_float));
+	test_results.push_back(test_sell_c_sigma<64, SIGMA_SORTED>(ite, threads_num, mtx_CSR_float));
 	
-	test_sell_c_sigma_novec< 8, 1>(ite, threads_num, mtx_CSR_float);
-	test_sell_c_sigma_novec<16, 1>(ite, threads_num, mtx_CSR_float);
-	test_sell_c_sigma_novec<32, 1>(ite, threads_num, mtx_CSR_float);
-	test_sell_c_sigma_novec<64, 1>(ite, threads_num, mtx_CSR_float);
+	test_results.push_back(test_sell_c_sigma_novec< 8, 1>(ite, threads_num, mtx_CSR_float));
+	test_results.push_back(test_sell_c_sigma_novec<16, 1>(ite, threads_num, mtx_CSR_float));
+	test_results.push_back(test_sell_c_sigma_novec<32, 1>(ite, threads_num, mtx_CSR_float));
+	test_results.push_back(test_sell_c_sigma_novec<64, 1>(ite, threads_num, mtx_CSR_float));
 	
 	cout << "------------------------------------------------------" << endl;
 	cout << "table_start" << endl;
-	
-	cout << "NAME FUNCTION TIME_MS NZ DIFF CONV_TIME" << endl;
+	const string title_NAME = "NAME";
+	const string title_FUNCTION = "FUNCTION";
+	const string title_TIME_MS = "TIME_MS";
+	const string title_NZ = "NZ";
+	const string title_DIFF = "DIFF";
+	const string title_CONV_TIME = "CONV_TIME";
+	size_t NAME_sz = title_NAME.size();
+	size_t FUNCTION_sz = title_FUNCTION.size();
+	size_t TIME_MS_sz = title_TIME_MS.size();
+	size_t NZ_sz = title_NZ.size();
+	size_t DIFF_sz = title_DIFF.size();
+	size_t CONV_TIME_sz = title_CONV_TIME.size();
 	for (auto res : test_results) {
-		cout << res.NAME << " ";
-		cout << res.FUNCTION << " ";
-		cout << res.TIME_MS << " ";
-		cout << res.NZ << " ";
-		cout << res.DIFF << " ";
-		cout << res.CONV_TIME << endl;
+		NAME_sz      = max(NAME_sz,      res.NAME.size());
+		FUNCTION_sz  = max(FUNCTION_sz,  res.FUNCTION.size());
+		TIME_MS_sz   = max(TIME_MS_sz,   res.TIME_MS.size());
+		NZ_sz        = max(NZ_sz,        res.NZ.size());
+		DIFF_sz      = max(DIFF_sz,      res.DIFF.size());
+		CONV_TIME_sz = max(CONV_TIME_sz, res.CONV_TIME.size());
+ 	}
+	
+	cout << title_NAME << string(NAME_sz - title_NAME.size() + 1, ' ');
+	cout << title_FUNCTION << string(FUNCTION_sz - title_FUNCTION.size() + 1, ' ');
+	cout << title_TIME_MS << string(TIME_MS_sz - title_TIME_MS.size() + 1, ' ');
+	cout << title_NZ << string(NZ_sz - title_NZ.size() + 1, ' ');
+	cout << title_DIFF << string(DIFF_sz - title_DIFF.size() + 1, ' ');
+	cout << title_CONV_TIME << string(CONV_TIME_sz - title_CONV_TIME.size() + 1, ' ');
+	cout << endl;
+	for (auto res : test_results) {
+		cout << res.NAME      << string(NAME_sz - res.NAME.size() + 1, ' ');
+		cout << res.FUNCTION  << string(FUNCTION_sz - res.FUNCTION.size() + 1, ' ');
+		cout << res.TIME_MS   << string(TIME_MS_sz - res.TIME_MS.size() + 1, ' ');
+		cout << res.NZ        << string(NZ_sz - res.NZ.size() + 1, ' ');
+		cout << res.DIFF      << string(DIFF_sz  - res.DIFF.size() + 1, ' ');
+		cout << res.CONV_TIME << string(CONV_TIME_sz  - res.DIFF.size() + 1, ' ');
+		cout << endl;
  	}
 	cout << "table_end" << endl;
 	cout << "------------------------------------------------------" << endl;
