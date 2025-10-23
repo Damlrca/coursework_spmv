@@ -3,9 +3,7 @@
 #SBATCH --time=400 --partition=k1_8gb
 #SBATCH --output=out-%j-run_main2_2.out
 
-echo start_run_main2_2
-
-date
+echo -n "START RUNNING MAIN2_EXE (run_main2_2.sh) " && date
 
 ./main2_exe ../test_bin/cant.bin 2 25
 
@@ -27,6 +25,4 @@ date
 
 ./main2_exe ../test_bin/consph.bin 2 25
 
-echo end_run_main2_2
-
-date
+echo -n "END RUNNING MAIN2_EXE (run_main2_2.sh) " && date
