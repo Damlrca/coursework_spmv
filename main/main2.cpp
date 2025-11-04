@@ -221,7 +221,7 @@ template <int M>
 TestResult test_albus_v(const int ite, const int threads_num, const matrix_CSR<double>& mtx_CSR) {
 	MyTimer timer;
 	const string name = "albus_v_m" + to_string(M);
-	const string function = "spmv_albus_omp_v_noalloc<double, " + to_string(M) + ">";
+	const string function = "spmv_albus_omp_v_noalloc<double," + to_string(M) + ">";
 	cout << "run " << name << " preproc_albus_balance" << endl;
 	
 	int start[100];
@@ -264,7 +264,7 @@ template <int M>
 TestResult test_albus_v(const int ite, const int threads_num, const matrix_CSR<float>& mtx_CSR) {
 	MyTimer timer;
 	const string name = "albus_v_m" + to_string(M) + "_f";
-	const string function = "spmv_albus_omp_v_noalloc<float, " + to_string(M) + ">";
+	const string function = "spmv_albus_omp_v_noalloc<float," + to_string(M) + ">";
 	cout << "run " << name << " preproc_albus_balance" << endl;
 	
 	int start[100];
@@ -309,7 +309,7 @@ template<int C, int sigma>
 TestResult test_sell_c_sigma(const int ite, const int threads_num, const matrix_CSR<double>& mtx_CSR) {
 	MyTimer timer;
 	const string name = "scs_" + to_string(C) + "_" + (sigma == SIGMA_SORTED ? string("S") : to_string(sigma));
-	const string function = "spmv_sell_c_sigma_noalloc<double, " + to_string(C) + ", " + to_string(sigma) + ">";
+	const string function = "spmv_sell_c_sigma_noalloc<double," + to_string(C) + "," + to_string(sigma) + ">";
 	cout << "run " << name << " " << function << endl;
 	
 	timer.SetStartTime();
@@ -352,7 +352,7 @@ template<int C, int sigma>
 TestResult test_sell_c_sigma(const int ite, const int threads_num, const matrix_CSR<float>& mtx_CSR) {
 	MyTimer timer;
 	const string name = "scs_" + to_string(C) + "_" + (sigma == SIGMA_SORTED ? string("S") : to_string(sigma)) + "_f";
-	const string function = "spmv_sell_c_sigma_noalloc<float, " + to_string(C) + ", " + to_string(sigma) + ">";
+	const string function = "spmv_sell_c_sigma_noalloc<float," + to_string(C) + "," + to_string(sigma) + ">";
 	cout << "run " << name << " " << function << endl;
 	
 	timer.SetStartTime();
@@ -395,7 +395,7 @@ template<int C, int sigma>
 TestResult test_sell_c_sigma_novec(const int ite, const int threads_num, const matrix_CSR<double>& mtx_CSR) {
 	MyTimer timer;
 	const string name = "scs_" + to_string(C) + "_" + (sigma == SIGMA_SORTED ? string("S") : to_string(sigma)) + "_novec";
-	const string function = "spmv_sell_c_sigma_noalloc_novec<double, " + to_string(C) + ", " + to_string(sigma) + ">";
+	const string function = "spmv_sell_c_sigma_noalloc_novec<double," + to_string(C) + "," + to_string(sigma) + ">";
 	cout << "run " << name << " " << function << endl;
 	
 	timer.SetStartTime();
@@ -438,7 +438,7 @@ template<int C, int sigma>
 TestResult test_sell_c_sigma_novec(const int ite, const int threads_num, const matrix_CSR<float>& mtx_CSR) {
 	MyTimer timer;
 	const string name = "scs_" + to_string(C) + "_" + (sigma == SIGMA_SORTED ? string("S") : to_string(sigma)) + "_novec" + "_f";
-	const string function = "spmv_sell_c_sigma_noalloc_novec<float, " + to_string(C) + ", " + to_string(sigma) + ">";
+	const string function = "spmv_sell_c_sigma_noalloc_novec<float," + to_string(C) + "," + to_string(sigma) + ">";
 	cout << "run " << name << " " << function << endl;
 	
 	timer.SetStartTime();
