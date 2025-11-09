@@ -31,6 +31,10 @@ Computing. 2014. Vol. 36:5. P. C401-C423. DOI: https://doi.org/10.1137/130930352
 	- test_sell_c_sigma <8/16/32/64, Sigma, float>
 	- test_sell_c_sigma_novec <C, Sigma, double>
 
+### graphs
+- graphs.py // build plots for main2 ouput!
+- run_graphs_py.sh //
+
 ### mtx_io
 - mmio.c, mmio.h // Matrix Market I/O library
 - mtx_io.cpp, mtx_io.hpp // functions for matrices input/output
