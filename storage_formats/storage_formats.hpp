@@ -10,6 +10,7 @@
 #include <cstring>
 #include <memory>
 #include <vector>
+#include <limits>
 
 // COO - Coordinate list sparse matrix format
 template <typename T = double>
@@ -146,14 +147,18 @@ struct matrix_SELL_C_sigma {
 	}
 };
 
+
+// conversion from CSR to SELL_C_sigma
+// with optional column permutation (in same order as rows)
 template<int C, int sigma, typename T>
-matrix_SELL_C_sigma<C, sigma, T> convert_CSR_to_SELL_C_sigma(const matrix_CSR<T>& mtx_CSR, int vertical_block_size = 9'999'999) {
+matrix_SELL_C_sigma<C, sigma, T> convert_CSR_to_SELL_C_sigma(const matrix_CSR<T>& mtx_CSR, bool column_permutation_as_rows = false) {
 	matrix_SELL_C_sigma<C, sigma, T> res;
 	res.N = (mtx_CSR.N + C - 1) / C * C;
 	res.M = mtx_CSR.M;
 	res.rows_perm = new int[res.N];
 	std::iota(res.rows_perm, res.rows_perm + res.N, 0);
-	if (sigma != 1) {
+	// sort rows (calculate rows_perm) if sigma > 1
+	if (sigma > 1) {
 		for (int i = 0; i < res.N; i += C * sigma) {
 			std::sort(res.rows_perm + i, res.rows_perm + std::min(res.N, i + C * sigma), [&](int a, int b)->bool{
 				int sz_a = 0;
@@ -166,52 +171,42 @@ matrix_SELL_C_sigma<C, sigma, T> convert_CSR_to_SELL_C_sigma(const matrix_CSR<T>
 			});
 		}
 	}
+	
+	std::vector<int> rows_perm_inv(res.N);
+	for (int i = 0; i < res.N; i++) {
+		rows_perm_inv[res.rows_perm[i]] = i;
+	}
+	
 	res.cs = new int[res.N / C + 1];
 	res.cl = new int[res.N / C];
 	memset(res.cs, 0, (res.N / C + 1) * sizeof(int));
 	memset(res.cl, 0, (res.N / C) * sizeof(int));
 	
+	constexpr int FAKE_ZERO_ELEMENT_INDEX = std::numeric_limits<int>::max();
 	std::vector<std::vector<std::pair<int, T>>> TEMP(res.N);
 	for (int i = 0; i < res.N; i += C) {
 		std::vector<int> i_ids(C), i_sz(C);
+		int mx_isz = 0;
 		for (int k = 0; k < C; k++) {
 			int ik_id = res.rows_perm[i + k];
 			if (ik_id < mtx_CSR.N) {
 				i_sz[k] = mtx_CSR.row_id[ik_id + 1] - mtx_CSR.row_id[ik_id];
 			}
+			mx_isz = std::max(mx_isz, i_sz[k]); 
 		}
-		while (true) {
-			int block = -1;
-			for (int k = 0; k < C; k++) {
-				if (i_ids[k] < i_sz[k]) {
-					int ik_id = res.rows_perm[i + k];
-					int j = mtx_CSR.row_id[ik_id] + i_ids[k];
-					int k_block = mtx_CSR.col[j] / vertical_block_size;
-					if (block == -1 || k_block < block) {
-						block = k_block;
-					}
-				}
+		for (int k = 0; k < C; k++) {
+			TEMP[i + k].reserve(mx_isz);
+			while (i_ids[k] < i_sz[k]) {
+				int ik_id = res.rows_perm[i + k];
+				int j = mtx_CSR.row_id[ik_id] + i_ids[k];
+				int col = column_permutation_as_rows ? rows_perm_inv[mtx_CSR.col[j]] : mtx_CSR.col[j];
+				TEMP[i + k].push_back({col, mtx_CSR.value[j]});
+				i_ids[k]++;
 			}
-			if (block == -1) {
-				break;
+			while (TEMP[i + k].size() < mx_isz) {
+				TEMP[i + k].push_back({FAKE_ZERO_ELEMENT_INDEX, 0});
 			}
-			for (int k = 0; k < C; k++) {
-				if (i_ids[k] < i_sz[k]) {
-					int ik_id = res.rows_perm[i + k];
-					int j = mtx_CSR.row_id[ik_id] + i_ids[k];
-					int k_block = mtx_CSR.col[j] / vertical_block_size;
-					if (k_block == block) {
-						TEMP[i + k].push_back({mtx_CSR.col[j], mtx_CSR.value[j]});
-						i_ids[k]++;
-					}
-					else {
-						TEMP[i + k].push_back({-1, 0});
-					}
-				}
-				else {
-					TEMP[i + k].push_back({-1, 0});
-				}
-			}
+			std::sort(TEMP[i + k].begin(), TEMP[i + k].end()); // TODO
 		}
 	}
 	
@@ -236,23 +231,25 @@ matrix_SELL_C_sigma<C, sigma, T> convert_CSR_to_SELL_C_sigma(const matrix_CSR<T>
 			int indx = res.cs[i / C] + (i % C) + (j * C);
 			res.value[indx] = TEMP[i][j].second;
 			// index of column in bytes (for riscv vlux intrinsic)
-			if (TEMP[i][j].first == -1)
-				res.col[indx] = -1;
-			else
+			if (TEMP[i][j].first == FAKE_ZERO_ELEMENT_INDEX) {
+				res.col[indx] = FAKE_ZERO_ELEMENT_INDEX;
+			}
+			else {
 				res.col[indx] = TEMP[i][j].first * sizeof(T);
+			}
 		}
 	}
 	for (int i = 0; i < res.N / C; i++) {
 		for (int j = res.cs[i]; j < res.cs[i + 1]; j += C) {
 			int id = -1;
 			for (int k = 0; k < C; k++) {
-				if (res.col[j + k] != -1) {
+				if (res.col[j + k] != FAKE_ZERO_ELEMENT_INDEX) {
 					id = res.col[j + k];
 					break;
 				}
 			}
 			for (int k = 0; k < C; k++) {
-				if (res.col[j + k] == -1) {
+				if (res.col[j + k] == FAKE_ZERO_ELEMENT_INDEX) {
 					res.col[j + k] = id;
 				}
 			}

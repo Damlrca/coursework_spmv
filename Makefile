@@ -4,9 +4,9 @@
 # should i make cmake file instead?
 
 # need to load module before compilation
-# old module:
-# module load Xuantie-900-gcc-linux-5.10.4-glibc-x86_64-V2.8.1
-# new module:
+# (old module:)
+# (module load Xuantie-900-gcc-linux-5.10.4-glibc-x86_64-V2.8.1)
+# NEW MODULE:
 # module load gcc-riscv64-14.2.0
 
 CC = riscv64-unknown-linux-gnu-gcc
@@ -22,6 +22,7 @@ CFLAGS = -march=rv64gcv -fopenmp -O2
 
 all: main2_exe
 
+# MAIN_2
 
 # main2_exe executable for testing spmv (everything required!)
 main2_exe: main2.o mtx_io.o mmio.o spmv_functions.o storage_formats.o
@@ -31,6 +32,17 @@ main2_exe: main2.o mtx_io.o mmio.o spmv_functions.o storage_formats.o
 main2.o: main/main2.cpp spmv_functions.o mtx_io.o storage_formats.o
 	$(CXX) -c $(CFLAGS) $< -o $@
 
+# MAIN_JACOBI
+
+# main_jacobi_exe executable for testing jacobi method (everything required!)
+main_jacobi_exe: main_jacobi.o mtx_io.o mmio.o spmv_functions.o storage_formats.o
+	$(CXX) $(CFLAGS) $^ -o $@
+
+# main_jacobi_exe executable for testing jacobi method (spmv_functions.o, mtx_io.o, storage_formats.o required)
+main_jacobi.o: main/main_jacobi.cpp spmv_functions.o mtx_io.o storage_formats.o
+	$(CXX) -c $(CFLAGS) $< -o $@
+
+# MTX2BIN
 
 # mtx2bin_exe executable for convertion matrix from mtx to bin format
 mtx2bin_exe: mtx2bin.o mtx_io.o mmio.o storage_formats.o
@@ -40,6 +52,7 @@ mtx2bin_exe: mtx2bin.o mtx_io.o mmio.o storage_formats.o
 mtx2bin.o: mtx_io/mtx2bin.cpp mtx_io.o storage_formats.o
 	$(CXX) -c $(CFLAGS) $< -o $@
 
+# REQUIRED STUFF
 
 # spmv functions (storage_formats.o required)
 spmv_functions.o: spmv_functions/spmv_functions.cpp spmv_functions/spmv_functions.hpp storage_formats.o
